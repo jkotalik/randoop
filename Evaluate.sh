@@ -313,10 +313,8 @@ doIndividualExperiment() {
         log "Line file is: ${line_file}"
         branch_file="${exp_dir}/${project}_Individual_${1}_Branch.txt"
         log "Branch file is: ${branch_file}"
-<<<<<<< HEAD
         csv_branch_file="${exp_dir}/${project}_Individual_${1}_Branch.csv"
         csv_line_file="${exp_dir}/${project}_Individual_${1}_Line.csv"
-=======
         
         if [ $overwrite ];then
             if [ -f $line_file ]; then
@@ -326,7 +324,6 @@ doIndividualExperiment() {
                 rm $branch_file
             fi
         fi
->>>>>>> 8358152a9dd360d0b672fcfb9cd1ba2cb57d11f1
 
         prepProjectForGeneration
         for time in ${indiv_time_limits[@]}; do
@@ -355,7 +352,6 @@ doIndividualExperiment() {
                 recordCoverage
                 i=$((i+1))
             done
-<<<<<<< HEAD
 
             # Add newlines to format for reading by python script
             echo "" >> ${line_file}
@@ -363,8 +359,6 @@ doIndividualExperiment() {
             echo "" >> ${csv_line_file}
             echo "" >> ${csv_branch_file}
 
-=======
->>>>>>> 8358152a9dd360d0b672fcfb9cd1ba2cb57d11f1
         done
 	
         # Run Plot.py to generate a plot for this experiment
