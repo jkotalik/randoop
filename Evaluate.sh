@@ -267,10 +267,16 @@ recordCoverage() {
         nums+=("${num}")
     done <numbers.txt
     if [ 0 -ne ${nums[1]} ]; then
+        if [ $i -eq 1 ]; then
+            echo -n ",${nums[0]}" >> ${csv_line_file}
+            echo -n ",${nums[2]}" >> ${csv_branch_file}
+        fi
         echo "${nums[1]}" >> ${line_file}
         echo "${nums[0]}" >> ${line_file}
         echo "${nums[3]}" >> ${branch_file}
         echo "${nums[2]}" >> ${branch_file}
+        echo -n ",${nums[1]}" >> ${csv_line_file}
+        echo -n ",${nums[3]}" >> ${csv_branch_file}
     else
         echo "${project}, ${time}" >> ${failure_file}
         log "i = $i"
@@ -303,11 +309,15 @@ doIndividualExperiment() {
         log "Line file is: ${line_file}"
         branch_file="${exp_dir}/${project}_Individual_${1}_Branch.txt"
         log "Branch file is: ${branch_file}"
-        
+        csv_branch_file="${exp_dir}/${project}_Individual_${1}_Branch.csv"
+        csv_line_file="${exp_dir}/${project}_Individual_${1}_Line.csv"
+
         prepProjectForGeneration
         for time in ${indiv_time_limits[@]}; do
             echo "TIME ${time}" >> ${line_file}
             echo "TIME ${time}" >> ${branch_file}
+            echo -n "TIME ${time}" >> ${csv_line_file}
+            echo -n "TIME ${time}" >> ${csv_branch_file}
             i=1
             while [ $i -le 10 ]; do
                 case $1 in
@@ -333,6 +343,9 @@ doIndividualExperiment() {
             # Add newlines to format for reading by python script
             echo "" >> ${line_file}
             echo "" >> ${branch_file}
+            echo "" >> ${csv_line_file}
+            echo "" >> ${csv_branch_file}
+
         done
 	
         # Run Plot.py to generate a plot for this experiment
