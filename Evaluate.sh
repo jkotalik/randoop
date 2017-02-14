@@ -9,7 +9,14 @@ usage() {
     log "Usage: ./Evaluate.sh [-i][-b]"
 }
 
-specified_experiments=("Randoop")
+#initialize some default options before parsing the command line arguments
+specified_experiments=("Randoop" "Orienteering")
+projects=("Chart")
+# "Chart" "Lang" "Math" "Time"
+# Chart: 501
+# Lang: 86
+# Math: 520
+# Time: 79
 
 log "Running DigDog Evaluation Script"
 # Read the flag options that were passed in when the script was run.
@@ -29,6 +36,10 @@ while [[ $# -gt 0 ]]; do
 			build=true
 			log "Found command line option: -b"
 			;;
+		-o|--overwrite)
+			overwrite=true
+			log "Found command line option: -o"
+			;;
         -t|--time)
             time_arg=true
             shift
@@ -36,17 +47,23 @@ while [[ $# -gt 0 ]]; do
             IFS=","
             declare -a specified_times=(${1})
             IFS=$oldIFS
-            log "Found command line option: -t"
-            log "Times set to: ${specified_times[@]}"
+            log "Times set to: [${specified_times[*]}]"
             ;;
         -e|--exp|--experiments)
-            exp_arg=true
             shift
             oldIFS=$IFS
             IFS=","
             declare -a specified_experiments=(${1})
             IFS=$oldIFS
-            log "Experiments set to ${specified_experiments[@]}"
+            log "Experiments set to [${specified_experiments[*]}]"
+            ;;
+        -p|--proj|--projects)
+            shift
+            oldIFS=$IFS
+            IFS=","
+            declare -a projects=(${1})
+            IFS=$oldIFS
+            log "Projects set to [${projects[*]}]"
             ;;
 		*)
 			log "Unknown flag: ${key}"
@@ -56,19 +73,18 @@ while [[ $# -gt 0 ]]; do
 	shift
 done
 
+if [ $overwrite ]; then
+    log "Overwrite enabled, will remove data files before metrics are recorded."
+fi
+
 # Set up some fixed values to be used throughout the script
 work_dir=proj
-projects=("Chart")
-# "Chart" "Lang" "Math" "Time"
-# Chart: 501
-# Lang: 86
-# Math: 520
-# Time: 79
 
 time_limits=(2 10 30 60 120)
-project_sizes=(501 86 520 79)
-randoop_path=`pwd`"/experiments/randoop-baseline-3.0.9.jar"
+project_sizes=(501 86 520 79) #TODO: include this where we calculate the time limits
+randoop_path=`pwd`"/experiments/lib/randoop-baseline-3.0.9.jar"
 digdog_path=`pwd`"/build/libs/randoop-all-3.0.8.jar"
+#java_path=`pwd`"/experiments/lib/jdk1.7.0/bin/java"
 plot_path=`pwd`"/Plot.py"
 
 # If the build flag was set or if there is no digdog jar
@@ -78,18 +94,6 @@ if [ $build ] || [ ! -f $digdog_path ]; then
 	./gradlew clean
 	./gradlew assemble
 fi
-
-# Get 3.0.8 release of randoop, which will be used as one of the test generation tools
-#if [ ! -f $randoop_path ]; then
-#	wget https://github.com/randoop/randoop/releases/download/v3.0.8/randoop-3.0.8.zip
-#	mkdir tmp
-#	unzip randoop-3.0.8.zip -d tmp
-#	rm -f randoop-3.0.8.zip
-
-#	mv tmp/randoop-all-3.0.8.jar build/libs/randoop-baseline-3.0.8.jar
-#	rm -rf tmp
-
-#fi
 
 # Go up one level to the directory that contains this repository
 cd ..
@@ -309,8 +313,20 @@ doIndividualExperiment() {
         log "Line file is: ${line_file}"
         branch_file="${exp_dir}/${project}_Individual_${1}_Branch.txt"
         log "Branch file is: ${branch_file}"
+<<<<<<< HEAD
         csv_branch_file="${exp_dir}/${project}_Individual_${1}_Branch.csv"
         csv_line_file="${exp_dir}/${project}_Individual_${1}_Line.csv"
+=======
+        
+        if [ $overwrite ];then
+            if [ -f $line_file ]; then
+                rm $line_file
+            fi
+            if [ -f $branch_file ]; then
+                rm $branch_file
+            fi
+        fi
+>>>>>>> 8358152a9dd360d0b672fcfb9cd1ba2cb57d11f1
 
         prepProjectForGeneration
         for time in ${indiv_time_limits[@]}; do
@@ -339,6 +355,7 @@ doIndividualExperiment() {
                 recordCoverage
                 i=$((i+1))
             done
+<<<<<<< HEAD
 
             # Add newlines to format for reading by python script
             echo "" >> ${line_file}
@@ -346,6 +363,8 @@ doIndividualExperiment() {
             echo "" >> ${csv_line_file}
             echo "" >> ${csv_branch_file}
 
+=======
+>>>>>>> 8358152a9dd360d0b672fcfb9cd1ba2cb57d11f1
         done
 	
         # Run Plot.py to generate a plot for this experiment
