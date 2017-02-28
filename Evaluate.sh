@@ -179,7 +179,7 @@ if [ $init ] || [ $projects_arg ]; then
 
 	    # Checkout and compile current project
         version=1
-	    checkoutProject "b"
+	    checkoutProject "f"
 
 	    # Create the classlist and jar list for this project.
 	    log "Setting up class list for project ${project}"
@@ -319,16 +319,16 @@ recordCoverage() {
 }
 
 doCompleteExperiment() {
-    doCoverage $1 "Complete" 5
+    doCoverage $1 "Complete" 3
 }
 
 doIndividualExperiment() {
-    doCoverage $1 "Individual" 10
+    doCoverage $1 "Individual" 5
 }
 
 doCoverage() {
     if [ $time_arg ]; then
-        time_limits=$specified_times
+        time_limits=${specified_times[*]}
     elif [ $2 = "Complete" ]; then
         time_limits=(2 10 30 60)
     else
@@ -348,6 +348,8 @@ doCoverage() {
     fi
 
     for project in ${projects[@]}; do
+	curr_dir=$work_dir$project
+	test_dir=${curr_dir}/gentests
         line_file="${exp_dir}/${project}_${2}_${1}_Line.txt"
         log "Line file is: ${line_file}"
         branch_file="${exp_dir}/${project}_${2}_${1}_Branch.txt"
@@ -397,6 +399,14 @@ doCoverage() {
                     Orienteering)
                         log "Running digDog with orienteering, time limit=${time}, ${project} #${i}"
 			            $java_path -ea -classpath ${jars}${curr_dir}/${classes_dir}:$digdog_path randoop.main.Main gentests --classlist=${project}classlist.txt --literals-level=CLASS --literals-file=CLASSES --timelimit=${time} --junit-reflection-allowed=false --junit-package-name=${curr_dir}.gentests --randomseed=$RANDOM --orienteering=true --ignore-flaky-tests=true
+                        ;;
+                    ConstantMining)
+                        log "Running digDog with constant mining, time limit=${time}, ${project} #${i}"
+			            $java_path -ea -classpath ${jars}${curr_dir}/${classes_dir}:$digdog_path randoop.main.Main gentests --classlist=${project}classlist.txt --literals-level=CLASS --literals-file=CLASSES --timelimit=${time} --junit-reflection-allowed=false --junit-package-name=${curr_dir}.gentests --randomseed=$RANDOM --constant_mining=true --ignore-flaky-tests=true
+                        ;;
+                    DigDog)
+                        log "Running digDog with both features, time limit=${time}, ${project} #${i}"
+			            $java_path -ea -classpath ${jars}${curr_dir}/${classes_dir}:$digdog_path randoop.main.Main gentests --classlist=${project}classlist.txt --literals-level=CLASS --literals-file=CLASSES --timelimit=${time} --junit-reflection-allowed=false --junit-package-name=${curr_dir}.gentests --randomseed=$RANDOM --orienteering=true --constant_mining=true --ignore-flaky-tests=true
                         ;;
                     *)
                         log "Unkown experiment condition"
@@ -535,7 +545,7 @@ doFaultDetection() {
                         adjustTestNames
                         packageTestsForFaultDetection
                         countFaultDetection
-                        if grep -Fxq "Fail" $fault_data ; then
+                        if grep -Fxq "Fail" "$fault_data" ; then
                             log "found failing test on ${project} ${version}"
                             i=5
                         fi
