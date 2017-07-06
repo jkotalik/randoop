@@ -14,6 +14,7 @@ import plume.OptionGroup;
 import plume.Options;
 import plume.Unpublicized;
 import randoop.util.Randomness;
+import randoop.util.ReflectionExecutor;
 import randoop.util.Util;
 
 /** Container for Randoop options. */
@@ -615,7 +616,7 @@ public abstract class GenInputsAbstract extends CommandHandler {
    * A file to which to log selections; helps find sources of non-determinism. If not specified, no
    * logging is done.
    */
-  @Option("File to log each random selection")
+  @Option("File to which to log each random selection")
   public static String selection_log = null;
 
   /**
@@ -674,6 +675,23 @@ public abstract class GenInputsAbstract extends CommandHandler {
     if (!literals_file.isEmpty() && literals_level == ClassLiteralsMode.NONE) {
       throw new RuntimeException(
           "Invalid parameter combination: specified a class literal file but --use-class-literals=NONE");
+    }
+
+    if (deterministic && ReflectionExecutor.usethreads) {
+      throw new RuntimeException(
+          "Invalid parameter combination: --deterministic with --usethreads");
+    }
+
+    if (deterministic && timelimit != 0) {
+      throw new RuntimeException(
+          "Invalid parameter combination: --deterministic without --timelimit=0");
+    }
+
+    if (timelimit == 0 && outputlimit == LIMIT_DEFAULT && inputlimit == LIMIT_DEFAULT) {
+      throw new RuntimeException(
+          String.format(
+              "Unlikely parameter combination: --timelimit=0 --outputlimit=%s --inputlimit=%s",
+              LIMIT_DEFAULT, LIMIT_DEFAULT));
     }
   }
 
