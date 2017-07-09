@@ -1090,7 +1090,7 @@ Randoop about your application, and that is how we recommend using Randoop.
              Track and log the usage of operations during generation to standard out. This option is not
  affected by setting <code>--operation-history-log</code>. [default false]
             <li id="option:operation-history-log"><b>--operation-history-log=</b><i>filewriter</i>.
-             Name of a file to which to log the operation usage history . This operation is not affected by
+             Name of a file to which to log the operation usage history. This operation is not affected by
  setting <code>--log-operation-history</code>.
       </ul>
   <li id="optiongroup:Advanced-extension-points">Advanced extension points
@@ -1244,7 +1244,7 @@ If the rep invariant is ever violated, the program has a bug.
 <p>
 By using the
 <a href="https://randoop.github.io/randoop/api/randoop/CheckRep.html"><code>@CheckRep</code></a>
-annotation (don't forget to <code>import randoop.*</code>), you can
+annotation, you can
 tell Randoop which methods in your classes under test are rep
 invariant methods.  Randoop will call these methods; if the method
 ever fails, Randoop outputs the test as a failing test.
