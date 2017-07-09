@@ -29,8 +29,8 @@ jdk:
 script:
   - set -o errexit
   - ./gradlew assemble
-  - travis_wait 40 ./gradlew --info check
-  - travis_wait ./gradlew javadoc
+  - ./gradlew --info check
+  - ./gradlew javadoc
   - ./gradlew --info manual
   - ./gradlew validateManual
   - ./gradlew verifyGoogleJavaFormat
