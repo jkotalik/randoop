@@ -101,22 +101,10 @@ public class ForwardGenerator extends AbstractGenerator {
   public ForwardGenerator(
       List<TypedOperation> operations,
       Set<TypedOperation> observers,
-      long timeMillis,
-      int maxGenSequences,
-      int maxOutSequences,
+      GenInputsAbstract.Limits limits,
       ComponentManager componentManager,
       RandoopListenerManager listenerManager) {
-    this(
-        operations,
-        observers,
-        timeMillis,
-        maxGenSequences,
-        maxOutSequences,
-        componentManager,
-        null,
-        listenerManager,
-        0,
-        null);
+    this(operations, observers, limits, componentManager, null, listenerManager, 0, null);
   }
 
   // Called if you don't want to use the static weighting scheme for extracted literals.
@@ -124,31 +112,17 @@ public class ForwardGenerator extends AbstractGenerator {
   public ForwardGenerator(
       List<TypedOperation> operations,
       Set<TypedOperation> observers,
-      long timeMillis,
-      int maxGenSequences,
-      int maxOutSequences,
+      GenInputsAbstract.Limits limits,
       ComponentManager componentManager,
       IStopper stopper,
       RandoopListenerManager listenerManager) {
-    this(
-        operations,
-        observers,
-        timeMillis,
-        maxGenSequences,
-        maxOutSequences,
-        componentManager,
-        stopper,
-        listenerManager,
-        0,
-        null);
+    this(operations, observers, limits, componentManager, stopper, listenerManager, 0, null);
   }
 
   public ForwardGenerator(
       List<TypedOperation> operations,
       Set<TypedOperation> observers,
-      long timeMillis,
-      int maxGenSequences,
-      int maxOutSequences,
+      GenInputsAbstract.Limits limits,
       ComponentManager componentManager,
       RandoopListenerManager listenerManager,
       int numClasses,
@@ -156,9 +130,7 @@ public class ForwardGenerator extends AbstractGenerator {
     this(
         operations,
         observers,
-        timeMillis,
-        maxGenSequences,
-        maxOutSequences,
+        limits,
         componentManager,
         null,
         listenerManager,
@@ -169,22 +141,13 @@ public class ForwardGenerator extends AbstractGenerator {
   public ForwardGenerator(
       List<TypedOperation> operations,
       Set<TypedOperation> observers,
-      long timeMillis,
-      int maxGenSequences,
-      int maxOutSequences,
+      GenInputsAbstract.Limits limits,
       ComponentManager componentManager,
       IStopper stopper,
       RandoopListenerManager listenerManager,
       int numClasses,
       Map<Sequence, Integer> literalsTermFrequencies) {
-    super(
-        operations,
-        timeMillis,
-        maxGenSequences,
-        maxOutSequences,
-        componentManager,
-        stopper,
-        listenerManager);
+    super(operations, limits, componentManager, stopper, listenerManager);
 
     this.observers = observers;
     this.allSequences = new LinkedHashSet<>();
@@ -858,10 +821,8 @@ public class ForwardGenerator extends AbstractGenerator {
       // Now, find values that satisfy the constraint set.
       Variable randomVariable = chosenSeq.randomVariableForTypeLastStatement(inputType);
 
-      // We are not done yet: we have chosen a sequence that yields a value of
-      // the required
-      // type inputTypes[i], but there may be more than one such value. Our last
-      // random
+      // We are not done yet: we have chosen a sequence that yields a value of the required
+      // type inputTypes[i], but there may be more than one such value. Our last random
       // selection step is to select from among all possible values.
       // if (i == 0 && statement.isInstanceMethod()) m = Match.EXACT_TYPE;
       if (randomVariable == null) {

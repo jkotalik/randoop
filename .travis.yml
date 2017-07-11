@@ -29,7 +29,7 @@ jdk:
 script:
   - set -o errexit
   - ./gradlew assemble
-  - ./gradlew --info check
+  - ./gradlew check
   - ./gradlew javadoc
   - ./gradlew --info manual
   - ./gradlew validateManual

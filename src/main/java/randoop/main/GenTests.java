@@ -371,9 +371,7 @@ public class GenTests extends GenInputsAbstract {
         new ForwardGenerator(
             operations,
             observers,
-            timelimit * 1000,
-            inputlimit,
-            outputlimit,
+            new GenInputsAbstract.Limits(),
             componentMgr,
             listenerMgr,
             num_classes,

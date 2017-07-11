@@ -535,6 +535,11 @@ public class RandoopSystemTest {
     options.addTestClass("examples.CheckRep1");
     options.addTestClass("examples.CheckRep2");
 
+    // Temporary, extra debugging
+    options.setOption("selection-log", testEnvironment.workingDir + "/selection-log.txt");
+    options.setOption(
+        "operation-history-log", testEnvironment.workingDir + "/operation-history-log.txt");
+
     ExpectedTests expectedRegressionTests = ExpectedTests.NONE;
     ExpectedTests expectedErrorTests = ExpectedTests.SOME;
     generateAndTestWithCoverage(
@@ -1026,6 +1031,11 @@ public class RandoopSystemTest {
     options.addTestClass("generation.Dim6Matrix");
     options.setOption("outputlimit", "200");
     options.setOption("inputlimit", "2000");
+
+    // Temporary, extra debugging
+    options.setOption("selection-log", testEnvironment.workingDir + "/selection-log.txt");
+    options.setOption(
+        "operation-history-log", testEnvironment.workingDir + "/operation-history-log.txt");
 
     generateAndTest(testEnvironment, options, ExpectedTests.SOME, ExpectedTests.NONE);
   }
