@@ -366,6 +366,8 @@ public abstract class GenInputsAbstract extends CommandHandler {
     /**
      * @param timeLimit maximum time in seconds to spend in generation. Must be non-negative. Zero
      *     means no limit.
+     * @param attemptedLimit the maximum number of attempts to create a sequence. Must be
+     *     non-negative.
      * @param generatedLimit the maximum number of sequences to output. Must be non-negative.
      * @param outputLimit the maximum number of sequences to generate. Must be non-negative.
      */
