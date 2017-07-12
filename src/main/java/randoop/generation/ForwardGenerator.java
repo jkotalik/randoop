@@ -51,13 +51,13 @@ import randoop.util.SimpleList;
 public class ForwardGenerator extends AbstractGenerator {
 
   /**
-   * Map from a sequences to its combined weight. Accounts for the three weighting schemes for each
+   * Map from a sequence to its combined weight. Accounts for the three weighting schemes for each
    * sequence.
    */
   private final Map<Sequence, Double> weightMap = new HashMap<>();
 
   /**
-   * Map of sequences to the number of times they've been executed. Used with the dynamic weighting
+   * Map from a sequence to the number of times it's been executed. Used with the dynamic weighting
    * scheme.
    */
   private final Map<Sequence, Integer> sequenceExecutionCount = new HashMap<>();

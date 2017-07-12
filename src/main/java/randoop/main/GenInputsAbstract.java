@@ -425,8 +425,6 @@ public abstract class GenInputsAbstract extends CommandHandler {
   /**
    * How to use literal values that are specified via the <code>--literals-file</code> command-line
    * option.
-   *
-   * @see ClassLiteralsMode
    */
   @Option(
       "How to use literal values specified via --literals-file: ALL, CLASS_OR_ALL, PACKAGE, CLASS, or NONE")
@@ -438,18 +436,18 @@ public abstract class GenInputsAbstract extends CommandHandler {
    * @see #literals_level
    */
   public enum ClassLiteralsMode {
-    /** do not use literals specified in a literals file */
+    /** Do not use literals specified in a literals file. */
     NONE,
-    /** a literal for a given class is used as input only to methods of that class */
+    /** A literal for a given class is used as input only to methods of that class. */
     CLASS,
-    /** a literal is used as input to methods of any classes in the same package */
+    /** A literal is used as input to methods of any classes in the same package. */
     PACKAGE,
     /**
-     * a literal for a given class is used as input only to methods of that class with probability
-     * <code>--p-const</code>, otherwise each literal is used as input to any method under test
+     * A literal for a given class is used as input only to methods of that class with probability
+     * <code>--p-const</code>, otherwise each literal is used as input to any method under test.
      */
     CLASS_OR_ALL,
-    /** each literal is used as input to any method under test */
+    /** Each literal is used as input to any method under test. */
     ALL
   }
 
