@@ -721,8 +721,8 @@ public abstract class GenInputsAbstract extends CommandHandler {
         && outputLimit >= LIMIT_DEFAULT) {
       throw new RuntimeException(
           String.format(
-              "Unlikely parameter combination: --timeLimit=0 --attemptedLimit=%s --generatedLimit=%s --outputLimit=%s",
-              LIMIT_DEFAULT, LIMIT_DEFAULT));
+              "Unlikely parameter combination: --timeLimit=%s --attemptedLimit=%s --generatedLimit=%s --outputLimit=%s",
+              timeLimit, attemptedLimit, generatedLimit, outputLimit));
     }
   }
 
