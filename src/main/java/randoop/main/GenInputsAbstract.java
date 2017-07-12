@@ -712,7 +712,7 @@ public abstract class GenInputsAbstract extends CommandHandler {
 
     if (deterministic && timeLimit != 0) {
       throw new RuntimeException(
-          "Invalid parameter combination: --deterministic without --timelimit=0");
+          "Invalid parameter combination: --deterministic without --timeLimit=0");
     }
 
     if (timeLimit == 0
@@ -721,7 +721,7 @@ public abstract class GenInputsAbstract extends CommandHandler {
         && outputLimit >= LIMIT_DEFAULT) {
       throw new RuntimeException(
           String.format(
-              "Unlikely parameter combination: --timelimit=0 --attemptedLimit=%s --generatedLimit=%s --outputLimit=%s",
+              "Unlikely parameter combination: --timeLimit=0 --attemptedLimit=%s --generatedLimit=%s --outputLimit=%s",
               LIMIT_DEFAULT, LIMIT_DEFAULT));
     }
   }
