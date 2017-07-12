@@ -194,11 +194,6 @@ public class RandoopSystemTest {
     options.setOption("observers", "resources/systemTest/randoop1_observers.txt");
     options.setOption("omit-field-list", "resources/systemTest/testclassomitfields.txt");
 
-    // Temporary, extra debugging for the runNaiveCollectionsTest
-    options.setOption("selection-log", testEnvironment.workingDir + "/selection-log.txt");
-    options.setOption(
-        "operation-history-log", testEnvironment.workingDir + "/operation-history-log.txt");
-
     CoverageChecker coverageChecker = new CoverageChecker(options);
     coverageChecker.exclude("java2.util2.Collections.get(java2.util2.ListIterator, int)");
     coverageChecker.exclude(
@@ -269,11 +264,6 @@ public class RandoopSystemTest {
     options.addTestClass("java2.util2.Collections");
     options.setOption("omit-field-list", "resources/systemTest/naiveomitfields.txt");
     options.setFlag("log-operation-history");
-
-    // Temporary, extra debugging for the runNaiveCollectionsTest
-    options.setOption("selection-log", testEnvironment.workingDir + "/selection-log.txt");
-    options.setOption(
-        "operation-history-log", testEnvironment.workingDir + "/operation-history-log.txt");
 
     CoverageChecker coverageChecker = new CoverageChecker(options);
     //    coverageChecker.exclude("java2.util2.ArrayList.add(int, java.lang.Object)");
@@ -535,11 +525,6 @@ public class RandoopSystemTest {
     options.setOption("generatedLimit", "200");
     options.addTestClass("examples.CheckRep1");
     options.addTestClass("examples.CheckRep2");
-
-    // Temporary, extra debugging
-    options.setOption("selection-log", testEnvironment.workingDir + "/selection-log.txt");
-    options.setOption(
-        "operation-history-log", testEnvironment.workingDir + "/operation-history-log.txt");
 
     ExpectedTests expectedRegressionTests = ExpectedTests.NONE;
     ExpectedTests expectedErrorTests = ExpectedTests.SOME;
@@ -1035,11 +1020,6 @@ public class RandoopSystemTest {
     options.addTestClass("generation.Dim6Matrix");
     options.setOption("generatedLimit", "2000");
     options.setOption("outputLimit", "200");
-
-    // Temporary, extra debugging
-    options.setOption("selection-log", testEnvironment.workingDir + "/selection-log.txt");
-    options.setOption(
-        "operation-history-log", testEnvironment.workingDir + "/operation-history-log.txt");
 
     generateAndTest(testEnvironment, options, ExpectedTests.SOME, ExpectedTests.NONE);
   }
