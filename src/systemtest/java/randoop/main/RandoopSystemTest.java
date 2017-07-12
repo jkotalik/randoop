@@ -215,8 +215,8 @@ public class RandoopSystemTest {
     coverageChecker.exclude("java2.util2.TreeSet.subSet(java.lang.Object, java.lang.Object)");
     coverageChecker.exclude("java2.util2.TreeSet.writeObject(java.io.ObjectOutputStream)");
 
-    // The following are known coverage inconsistencies when using --literals-level=CLASS_OR_ALL with --p.const=.01
-    // These inconsistencies depend on the value of --p_const
+    // The following are known coverage inconsistencies when using --literals-level=CLASS_OR_ALL with --p.const=.01 .
+    // These inconsistencies depend on the value of --p_const .
     if (GenInputsAbstract.literals_level == GenInputsAbstract.ClassLiteralsMode.CLASS_OR_ALL
         && GenInputsAbstract.p_const == .01) {
       /* Inconsistent locally, covered on Travis */
@@ -468,17 +468,6 @@ public class RandoopSystemTest {
     coverageChecker.ignore("examples.Buggy.BuggyEqualsTransitive.hashCode()");
 
     coverageChecker.ignore("examples.Buggy.StackOverflowError()");
-
-    /* Excluded locally and on Travis */
-    coverageChecker.exclude("examples.Buggy.Buggy3.equals(java.lang.Object)");
-    coverageChecker.exclude("examples.Buggy.Buggy3.hashCode()");
-    coverageChecker.exclude("examples.Buggy.Buggy5.equals(java.lang.Object)");
-    coverageChecker.exclude("examples.Buggy.Buggy5.getOne()");
-    coverageChecker.exclude("examples.Buggy.Buggy5.getTwo()");
-    coverageChecker.exclude("examples.Buggy.BuggyEqualsTransitive.equals(java.lang.Object)");
-    coverageChecker.exclude("examples.Buggy.BuggyEqualsTransitive.getOne()");
-    coverageChecker.exclude("examples.Buggy.BuggyEqualsTransitive.getThree()");
-    coverageChecker.exclude("examples.Buggy.BuggyEqualsTransitive.getTwo()");
 
     // Coverage inconsistencies
     if (GenInputsAbstract.literals_level == GenInputsAbstract.ClassLiteralsMode.CLASS) {
