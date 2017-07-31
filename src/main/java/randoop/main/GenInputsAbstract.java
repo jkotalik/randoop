@@ -15,7 +15,6 @@ import plume.Options;
 import plume.Unpublicized;
 import randoop.util.Randomness;
 import randoop.util.ReflectionExecutor;
-import randoop.util.Util;
 
 /** Container for Randoop options. They are stored as static variables, not instance variables. */
 @SuppressWarnings("WeakerAccess")
@@ -205,13 +204,13 @@ public abstract class GenInputsAbstract extends CommandHandler {
   public static Pattern require_classname_in_test = null;
 
   /**
-   * File containing fully-qualified names of classes that the tests must exercise. This option only
+   * File containing fully-qualified names of classes that the tests must use. This option only
    * works if Randoop is run using the <a
    * href="https://randoop.github.io/randoop/manual/index.html#covered-filter">covered-class
-   * javaagent</a> to instrument the classes. A test is output only if it exercises at least one of
-   * the class names in the file. A test exercises a class if it executes any constructor or method
-   * of the class, directly or indirectly (the constructor or method might not appear in the source
-   * code of the test). Included classes may be abstract.
+   * javaagent</a> to instrument the classes. A test is output only if it uses at least one of the
+   * class names in the file. A test uses a class if it invokes any constructor or method of the
+   * class, directly or indirectly (the constructor or method might not appear in the source code of
+   * the test). Included classes may be abstract.
    */
   @Option("File containing class names that tests must cover")
   public static File require_covered_classes = null;
@@ -624,8 +623,8 @@ public abstract class GenInputsAbstract extends CommandHandler {
 
   ///////////////////////////////////////////////////////////////////
   @OptionGroup("Logging, notifications, and troubleshooting Randoop")
-  @Option("Run more quietly: do not display information such as progress updates.")
-  public static boolean noprogressdisplay = false;
+  @Option("Run noisily: display information such as progress updates.")
+  public static boolean progressdisplay = true;
 
   @Option("Display progress message every <int> milliseconds. -1 means no display.")
   public static long progressintervalmillis = 60000;
@@ -641,25 +640,16 @@ public abstract class GenInputsAbstract extends CommandHandler {
   public static FileWriter log = null;
 
   /**
-   * A file to which to log selections; helps find sources of non-determinism. If not specified, no
-   * logging is done.
+   * A destination to which to log selections; helps find sources of non-determinism. Either the
+   * name of a file or a hyphen ("-") indicating that standard output should be used. If not
+   * specified, no logging is done.
    */
-  @Option("File to which to log each random selection")
+  @Option("Log destination for logging each random selection. Should be a file or stdout \"-\".")
   public static String selection_log = null;
 
-  /**
-   * Track and log the usage of operations during generation to standard out. This option is not
-   * affected by setting <code>--operation-history-log</code>.
-   */
-  @Option("Track and log operation usage counts")
-  public static boolean log_operation_history = false;
-
-  /**
-   * Name of a file to which to log the operation usage history. This operation is not affected by
-   * setting <code>--log-operation-history</code>.
-   */
-  @Option("Track and log operation usage counts to this file")
-  public static FileWriter operation_history_log = null;
+  /** A file to which to log the operation usage history. */
+  @Option("Log destination for operation usage counts. Should be a file or stdout \"-\".")
+  public static String operation_history_log = null;
 
   /**
    * Create sequences but never execute them. Used to test performance of Randoop's sequence
@@ -727,19 +717,18 @@ public abstract class GenInputsAbstract extends CommandHandler {
   }
 
   public static Set<String> getClassnamesFromArgs() {
-    String errMessage = "ERROR while reading list of classes to test";
-    Set<String> classnames = getStringSetFromFile(classlist, errMessage);
+    Set<String> classnames = getStringSetFromFile(classlist, "tested classes");
     classnames.addAll(testclass);
     return classnames;
   }
 
-  public static Set<String> getStringSetFromFile(File listFile, String errMessage) {
-    return getStringSetFromFile(listFile, errMessage, "^#.*", null);
+  public static Set<String> getStringSetFromFile(File listFile, String fileDescription) {
+    return getStringSetFromFile(listFile, fileDescription, "^#.*", null);
   }
 
   @SuppressWarnings("SameParameterValue")
   public static Set<String> getStringSetFromFile(
-      File listFile, String errMessage, String commentRegex, String includeRegex) {
+      File listFile, String fileDescription, String commentRegex, String includeRegex) {
     Set<String> elementSet = new LinkedHashSet<>();
     if (listFile != null) {
       try (EntryReader er = new EntryReader(listFile, commentRegex, includeRegex)) {
@@ -750,8 +739,8 @@ public abstract class GenInputsAbstract extends CommandHandler {
           }
         }
       } catch (IOException e) {
-        String msg = Util.toNColsStr(errMessage + ": " + e.getMessage(), 70);
-        System.err.println(msg);
+        System.err.printf(
+            "Error while reading %s file %s: %s%n", listFile, fileDescription, e.getMessage());
         System.exit(1);
       }
     }

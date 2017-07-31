@@ -62,6 +62,7 @@ The Randoop homepage is
           <li><a href="#flaky-tests">Randoop stopped because of a flaky test</a></li>
           <li><a href="#dependent-tests">Tests behave differently in isolation or when reordered</a></li>
         </ul></li>
+      <li><a href="#bug-reporting">Reporting a bug to the issue tracker</a></li>
     </ul></li>
   <li><a href="#credits">Credits</a></li>
 </ul>
@@ -858,13 +859,13 @@ Randoop about your application, and that is how we recommend using Randoop.
              Classes that must occur in a test. Randoop will only output tests whose source code has at
  least one use of a member of a class whose name matches the regular expression.
             <li id="option:require-covered-classes"><b>--require-covered-classes=</b><i>filename</i>.
-             File containing fully-qualified names of classes that the tests must exercise. This option only
+             File containing fully-qualified names of classes that the tests must use. This option only
  works if Randoop is run using the <a
  href="https://randoop.github.io/randoop/manual/index.html#covered-filter">covered-class
- javaagent</a> to instrument the classes. A test is output only if it exercises at least one of
- the class names in the file. A test exercises a class if it executes any constructor or method
- of the class, directly or indirectly (the constructor or method might not appear in the source
- code of the test). Included classes may be abstract.
+ javaagent</a> to instrument the classes. A test is output only if it uses at least one of the
+ class names in the file. A test uses a class if it invokes any constructor or method of the
+ class, directly or indirectly (the constructor or method might not appear in the source code of
+ the test). Included classes may be abstract.
             <li id="option:minimize-error-test"><b>--minimize-error-test=</b><i>boolean</i>.
              Flag indicating whether or not to automatically minimize error-revealing tests. Both original
  and minimized versions of each test class will be output. Setting this option may cause long
@@ -1114,8 +1115,8 @@ Randoop about your application, and that is how we recommend using Randoop.
       </ul>
   <li id="optiongroup:Logging,-notifications,-and-troubleshooting-Randoop">Logging, notifications, and troubleshooting Randoop
       <ul>
-            <li id="option:noprogressdisplay"><b>--noprogressdisplay=</b><i>boolean</i>.
-             Run more quietly: do not display information such as progress updates. [default false]
+            <li id="option:progressdisplay"><b>--progressdisplay=</b><i>boolean</i>.
+             Run noisily: display information such as progress updates. [default true]
             <li id="option:progressintervalmillis"><b>--progressintervalmillis=</b><i>long</i>.
              Display progress message every &lt;int&gt; milliseconds. -1 means no display. [default 60000]
             <li id="option:progressintervalsteps"><b>--progressintervalsteps=</b><i>long</i>.
@@ -1125,14 +1126,11 @@ Randoop about your application, and that is how we recommend using Randoop.
             <li id="option:log"><b>--log=</b><i>filename</i>.
              A file to which to log lots of information. If not specified, no logging is done.
             <li id="option:selection-log"><b>--selection-log=</b><i>string</i>.
-             A file to which to log selections; helps find sources of non-determinism. If not specified, no
- logging is done.
-            <li id="option:log-operation-history"><b>--log-operation-history=</b><i>boolean</i>.
-             Track and log the usage of operations during generation to standard out. This option is not
- affected by setting <code>--operation-history-log</code>. [default false]
-            <li id="option:operation-history-log"><b>--operation-history-log=</b><i>filewriter</i>.
-             Name of a file to which to log the operation usage history. This operation is not affected by
- setting <code>--log-operation-history</code>.
+             A destination to which to log selections; helps find sources of non-determinism. Either the
+ name of a file or a hyphen ("-") indicating that standard output should be used. If not
+ specified, no logging is done.
+            <li id="option:operation-history-log"><b>--operation-history-log=</b><i>string</i>.
+             A file to which to log the operation usage history.
       </ul>
   <li id="optiongroup:Advanced-extension-points">Advanced extension points
       <ul>
@@ -1316,16 +1314,38 @@ exception escaping the method as the rep invariant being violated.
 <h2 id="covered-filter">Instrumenting classes for filtering tests on covered-classes</h2>
 
 <p>
-  Randoop will ordinarily generate tests involving all accessible constructors,
-  fields and methods of tests given using the <code>--testclass</code> and
-  <code>--classlist</code> options.
-  These can be restricted to tests that exercise the constructors and methods of
-  classes from a different list given by using the
-  <code>--require-covered-classes</code> option.
-  However, for this option to work, the classes must be instrumented to indicate
-  when they are covered.
-  To instrument classes for this filter, also use the <code>covered-class-3.1.5.jar</code>
-  by giving the following command-line option for java
+  Randoop generates tests that use methods, constructors, and fields of classes
+  given using the <code>--testclass</code> and <code>--classlist</code> options.
+  Any given test may involve one or more of the classes.
+</p>
+
+<p>
+  The <a href="#option:require-covered-classes"><code>--require-covered-classes</code></a>
+  option makes Randoop discard any test that doesn't use at least one of the
+  specified classes.
+</p>
+
+<p>
+  Suppose you only want to test class A, but its methods takes arguments of type
+  B and C.  If you supply only A as a test class, Randoop cannot create
+  objects of type B and C, so Randoop may be unable to call class A.  Instead,
+  you can supply A, B, and C as test classes, but instruct Randoop to only
+  output the classes that use A.
+</p>
+
+<p>
+  Use of the <code>--require-covered-classes</code> option is unusual:  you
+  probably care about testing your entire application rather than just part of
+  it.  The option makes Randoop less efficient, because Randoop creates but
+  discards tests.
+</p>
+
+<p>
+  For the <code>--require-covered-classes</code> option to work, the classes
+  must be instrumented so Randoop can determine when they are covered.  To
+  instrument classes for this filter, also use
+  the <code>covered-class-3.1.5.jar</code> by giving the following command-line
+  option for java
 </p>
 <pre><code>
   -javaagent:$(RANDOOP_PATH)/covered-class-3.1.5.jar
@@ -1338,6 +1358,7 @@ exception escaping the method as the rep invariant being violated.
     unzipped distribution archive, or can be downloaded from the
     <a href="https://github.com/randoop/randoop/releases/latest">latest release</a>.)
 </p>
+
 
 <h2 id="primitives">Specifying additional primitive values</h2>
 
@@ -1477,25 +1498,8 @@ java -ea -classpath $(RANDOOP_JAR) randoop.main.Main help --unpub gentests
 </li>
 <li><strong>Bug reporting</strong>: If
   you have discovered a problem with Randoop, we would like to fix it.
-  Please submit an issue to the
-  <a href="https://github.com/randoop/randoop/issues"
-  rel="nofollow">issue tracker</a>.
-<br/>
-  You should include enough information to
-  enable the Randoop developers to reproduce the problem, which will make
-  it easier for them to diagnose the problem, fix Randoop, and verify the
-  fix.  This generally includes
-  <ul>
-    <li>the version of Randoop (please use the most recent released
-  version, or the current version from the <a href="https://github.com/randoop/randoop">GitHub version control repository</a>),</li>
-    <li>the exact commands you ran (we recommend using the <code>-ea</code> option to java when running Randoop, which makes diagnosis easier),</li>
-    <li>the exact and complete output of the commands, and</li>
-    <li>all the files that are necessary to run those commands.</li>
-  </ul>
-  If you encountered the problem while using the Maven plug-in,
-  then please reproduce the problem from the command line, to help the
-  Randoop developers find the underlying bug (or to isolate the problem to the plug-in).
-
+  Please see the instructions for <a href="#bug-reporting">submitting
+  a bug report</a>.
 </li>
 </ul>
 
@@ -1771,6 +1775,37 @@ tests</a>.
 <!-- <h2 id="q3">Randoop is hanging</h2> -->
 
 
+<h2 id="bug-reporting">Reporting a bug to the issue tracker</h2>
+
+<p>
+  If
+  you have discovered a problem with Randoop, we would like to fix it.
+  Please submit an issue to the
+  <a href="https://github.com/randoop/randoop/issues"
+  rel="nofollow">issue tracker</a>.
+</p>
+
+<p>
+  You should include enough information to
+  enable the Randoop developers to reproduce the problem, which will make
+  it easier for them to diagnose the problem, fix Randoop, and verify the
+  fix.  This generally includes
+</p>
+  <ul>
+    <li>the version of Randoop (please use the most recent released
+  version, or the current version from the <a href="https://github.com/randoop/randoop">GitHub version control repository</a>),</li>
+    <li>the exact commands you ran (we recommend using the <code>-ea</code> option to java when running Randoop, which makes diagnosis easier),</li>
+    <li>the exact and complete output of the commands, and</li>
+    <li>all the files that are necessary to run those commands.</li>
+  </ul>
+
+<p>
+  If you encountered the problem while using the Maven plug-in,
+  then please reproduce the problem from the command line, to help the
+  Randoop developers find the underlying bug (or to isolate the problem to the plug-in).
+</p>
+
+
 <h1 id="credits">Credits</h1>
 
 <p>
@@ -1827,7 +1862,7 @@ please let us know so we can correct the oversight.
  -->
 <!--  LocalWords:  mem stdout stderr componentfile ser GZIPPED gz plugin covmap
  -->
-<!--  LocalWords:  noprogressdisplay progressinterval filename cov ints expfile
+<!--  LocalWords:  progressdisplay progressinterval filename cov ints expfile
  -->
 <!--  LocalWords:  subsequences online unpub javac TypeN postcondition jarpath
  -->

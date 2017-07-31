@@ -69,8 +69,8 @@ public final class InitializedArrayCreation extends CallableOperation {
   @Override
   public ExecutionOutcome execute(Object[] statementInput, PrintStream out) {
     if (statementInput.length > length) {
-      String msg = "Too many arguments:" + statementInput.length + " capacity:" + length;
-      throw new IllegalArgumentException(msg);
+      throw new IllegalArgumentException(
+          "Too many arguments: " + statementInput.length + ", capacity: " + length);
     }
     long startTime = System.currentTimeMillis();
     assert statementInput.length == this.length;
@@ -94,8 +94,8 @@ public final class InitializedArrayCreation extends CallableOperation {
       List<Variable> inputVars,
       StringBuilder b) {
     if (inputVars.size() > length) {
-      String msg = "Too many arguments:" + inputVars.size() + " capacity:" + length;
-      throw new IllegalArgumentException(msg);
+      throw new IllegalArgumentException(
+          "Too many arguments: " + inputVars.size() + ", capacity: " + length);
     }
 
     String arrayTypeName = this.elementType.getName();
@@ -119,8 +119,12 @@ public final class InitializedArrayCreation extends CallableOperation {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof InitializedArrayCreation)) return false;
-    if (this == o) return true;
+    if (!(o instanceof InitializedArrayCreation)) {
+      return false;
+    }
+    if (this == o) {
+      return true;
+    }
     InitializedArrayCreation otherArrayDecl = (InitializedArrayCreation) o;
     return this.elementType.equals(otherArrayDecl.elementType)
         && this.length == otherArrayDecl.length;

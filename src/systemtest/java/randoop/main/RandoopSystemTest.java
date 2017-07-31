@@ -29,7 +29,7 @@ import org.junit.runners.MethodSorters;
  * <p>Each of the test methods
  *
  * <ul>
- *   <li>creates it's own subdirectory,
+ *   <li>creates its own subdirectory,
  *   <li>runs Randoop and saves generated tests to the subdirectory, and
  *   <li>compiles the generated test files.
  * </ul>
@@ -43,6 +43,10 @@ import org.junit.runners.MethodSorters;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class RandoopSystemTest {
+
+  // Keep in synch with GenTests.NO_CLASSES_TO_TEST.
+  // TODO: how to use the GenTests version?
+  public static final String NO_CLASSES_TO_TEST = "There are no classes to test. Exiting.";
 
   private static SystemTestEnvironment systemTestEnvironment;
 
@@ -229,9 +233,8 @@ public class RandoopSystemTest {
   /** Test formerly known as randoop2. Previously did a diff on generated test. */
   @Test
   public void runNaiveCollectionsTest() {
-
-    TestEnvironment testEnvironment =
-        systemTestEnvironment.createTestEnvironment("naive-collections-test");
+    String directoryName = "naive-collections-test";
+    TestEnvironment testEnvironment = systemTestEnvironment.createTestEnvironment(directoryName);
     RandoopOptions options = RandoopOptions.createOptions(testEnvironment);
     options.setPackageName("foo.bar");
     options.setRegressionBasename("NaiveRegression");
@@ -242,7 +245,7 @@ public class RandoopSystemTest {
     options.addTestClass("java2.util2.LinkedList");
     options.addTestClass("java2.util2.Collections");
     options.setOption("omit-field-list", "resources/systemTest/naiveomitfields.txt");
-    options.setFlag("log-operation-history");
+    options.setOption("operation-history-log", "-"); //log to stdout
 
     CoverageChecker coverageChecker = new CoverageChecker(options);
     //    coverageChecker.exclude("java2.util2.ArrayList.add(int, java.lang.Object)");
@@ -727,8 +730,8 @@ public class RandoopSystemTest {
   }
 
   /**
-   * Test formerly known as randoop-no-output. Runs with <tt>--noprogressdisplay</tt> and so should
-   * have no output.
+   * Test formerly known as randoop-no-output. Runs with <tt>--progressdisplay=false</tt> and so
+   * should have no output.
    */
   @Test
   public void runNoOutputTest() {
@@ -741,7 +744,7 @@ public class RandoopSystemTest {
 
     options.setOption("generatedLimit", "100");
     options.addTestClass("java.util.LinkedList");
-    options.setFlag("noprogressdisplay");
+    options.setOption("progressdisplay", "false");
 
     RandoopRunStatus randoopRunDesc =
         RandoopRunStatus.generateAndCompile(testEnvironment, options, false);
@@ -923,10 +926,10 @@ public class RandoopSystemTest {
 
     Iterator<String> it = result.processStatus.outputLines.iterator();
     String line = "";
-    while (!line.contains("No classes to test") && it.hasNext()) {
+    while (!line.contains(NO_CLASSES_TO_TEST) && it.hasNext()) {
       line = it.next();
     }
-    assertTrue("should fail to find class names in file", line.contains("No classes to test"));
+    assertTrue("should fail to find class names in file", line.contains(NO_CLASSES_TO_TEST));
   }
 
   /**
@@ -1057,7 +1060,7 @@ public class RandoopSystemTest {
 
   /**
    * recreate problem with tests over Google Guava where value from private enum returned by public
-   * method and value used in {@link randoop.test.ObjectCheck} surfaces in test code, creating
+   * method and value used in {@code randoop.test.ObjectCheck} surfaces in test code, creating
    * uncompilable code.
    */
   @Test

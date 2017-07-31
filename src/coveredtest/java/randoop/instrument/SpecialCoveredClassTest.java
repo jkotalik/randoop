@@ -18,6 +18,7 @@ import randoop.generation.ComponentManager;
 import randoop.generation.ForwardGenerator;
 import randoop.generation.RandoopListenerManager;
 import randoop.generation.SeedSequences;
+import randoop.generation.TestUtils;
 import randoop.main.ClassNameErrorHandler;
 import randoop.main.GenInputsAbstract;
 import randoop.main.GenTests;
@@ -48,6 +49,7 @@ public class SpecialCoveredClassTest {
 
   @Test
   public void abstractClassTest() {
+    TestUtils.setSelectionLog();
     GenInputsAbstract.silently_ignore_bad_class_names = false;
     GenInputsAbstract.classlist = new File("instrument/testcase/special-allclasses.txt");
     GenInputsAbstract.require_covered_classes =
@@ -59,14 +61,13 @@ public class SpecialCoveredClassTest {
     Set<String> classnames = GenInputsAbstract.getClassnamesFromArgs();
     Set<String> coveredClassnames =
         GenInputsAbstract.getStringSetFromFile(
-            GenInputsAbstract.require_covered_classes, "Unable to read coverage class names");
+            GenInputsAbstract.require_covered_classes, "coverage class names");
     Set<String> omitFields = new HashSet<>();
     VisibilityPredicate visibility = new PublicVisibilityPredicate();
     ReflectionPredicate reflectionPredicate =
         new DefaultReflectionPredicate(GenInputsAbstract.omitmethods, omitFields);
     Set<String> methodSignatures =
-        GenInputsAbstract.getStringSetFromFile(
-            GenInputsAbstract.methodlist, "Error while reading method list file");
+        GenInputsAbstract.getStringSetFromFile(GenInputsAbstract.methodlist, "method list");
     ClassNameErrorHandler classNameErrorHandler = new ThrowClassNameError();
     OperationModel operationModel = null;
     try {
@@ -143,7 +144,9 @@ public class SpecialCoveredClassTest {
         genTests.createTestCheckGenerator(visibility, contracts, observerMap, excludeAsObservers);
     testGenerator.addTestCheckGenerator(checkGenerator);
     testGenerator.addExecutionVisitor(new CoveredClassVisitor(coveredClasses));
+    //    TestUtils.setOperationLog(testGenerator);
     testGenerator.explore();
+    //    testGenerator.getOperationHistory().outputTable();
     List<ExecutableSequence> rTests = testGenerator.getRegressionSequences();
     List<ExecutableSequence> eTests = testGenerator.getErrorTestSequences();
     //
