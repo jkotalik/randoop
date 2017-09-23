@@ -63,6 +63,9 @@ public class ForwardExplorerTests {
 
   @Test
   public void test1() {
+    randoop.util.Randomness.setSeed(0);
+    ReflectionExecutor.resetStatistics();
+
     List<Class<?>> classes = new ArrayList<>();
     classes.add(Long.class);
 
@@ -94,15 +97,19 @@ public class ForwardExplorerTests {
     ReflectionManager mgr = new ReflectionManager(visibility);
     for (Class<?> c : classes) {
       ClassOrInterfaceType classType = ClassOrInterfaceType.forClass(c);
-      mgr.apply(
-          new OperationExtractor(classType, model, new DefaultReflectionPredicate(), visibility),
-          c);
+      final OperationExtractor extractor =
+          new OperationExtractor(classType, new DefaultReflectionPredicate(), visibility);
+      mgr.apply(extractor, c);
+      model.addAll(extractor.getOperations());
     }
     return model;
   }
 
   @Test
   public void test2() throws Throwable {
+    randoop.util.Randomness.setSeed(0);
+    ReflectionExecutor.resetStatistics();
+
     boolean bisort = false;
     boolean bimerge = false;
     boolean inorder = false;
@@ -161,6 +168,8 @@ public class ForwardExplorerTests {
 
   @Test
   public void test4() throws Exception {
+    randoop.util.Randomness.setSeed(0);
+    ReflectionExecutor.resetStatistics();
 
     boolean bh = false;
     boolean body = false;
@@ -219,10 +228,7 @@ public class ForwardExplorerTests {
   private static TestCheckGenerator createChecker(ContractSet contracts) {
     return (new GenTests())
         .createTestCheckGenerator(
-            new PublicVisibilityPredicate(),
-            contracts,
-            new MultiMap<Type, TypedOperation>(),
-            new LinkedHashSet<TypedOperation>());
+            new PublicVisibilityPredicate(), contracts, new MultiMap<Type, TypedOperation>());
   }
 
   private static Predicate<ExecutableSequence> createOutputTest() {

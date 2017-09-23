@@ -18,10 +18,12 @@ import randoop.generation.ComponentManager;
 import randoop.generation.ForwardGenerator;
 import randoop.generation.RandoopListenerManager;
 import randoop.generation.SeedSequences;
+import randoop.generation.TestUtils;
 import randoop.main.ClassNameErrorHandler;
 import randoop.main.GenInputsAbstract;
 import randoop.main.GenTests;
 import randoop.main.OptionsCache;
+import randoop.main.RandoopInputException;
 import randoop.main.ThrowClassNameError;
 import randoop.operation.OperationParseException;
 import randoop.operation.TypedOperation;
@@ -29,6 +31,7 @@ import randoop.reflection.DefaultReflectionPredicate;
 import randoop.reflection.OperationModel;
 import randoop.reflection.PublicVisibilityPredicate;
 import randoop.reflection.ReflectionPredicate;
+import randoop.reflection.SignatureParseException;
 import randoop.reflection.TypeNames;
 import randoop.reflection.VisibilityPredicate;
 import randoop.sequence.ExecutableSequence;
@@ -69,7 +72,13 @@ public class CoveredClassTest {
     GenInputsAbstract.require_covered_classes = null;
     // setup classes
 
-    ForwardGenerator testGenerator = getGenerator();
+    ForwardGenerator testGenerator;
+    try {
+      testGenerator = getGenerator();
+    } catch (RandoopInputException e) {
+      fail("Input error " + e);
+      throw new Error("dead code");
+    }
 
     testGenerator.explore();
     List<ExecutableSequence> rTests = testGenerator.getRegressionSequences();
@@ -79,18 +88,20 @@ public class CoveredClassTest {
     assertTrue("should have some regression tests", !rTests.isEmpty());
     assertFalse("don't expect error tests", !eTests.isEmpty());
 
-    Class<?> ac = null;
+    Class<?> ac;
     try {
       ac = TypeNames.getTypeForName("instrument.testcase.A");
     } catch (ClassNotFoundException e) {
       fail("cannot find class: " + e);
+      throw new Error("dead code");
     }
 
-    Class<?> cc = null;
+    Class<?> cc;
     try {
       cc = TypeNames.getTypeForName("instrument.testcase.C");
     } catch (ClassNotFoundException e) {
       fail("cannot find class: " + e);
+      throw new Error("dead code");
     }
 
     for (ExecutableSequence e : rTests) {
@@ -108,7 +119,13 @@ public class CoveredClassTest {
         null; //"tests/instrument/testcase/coveredclasses.txt";
     // setup classes
 
-    ForwardGenerator testGenerator = getGenerator();
+    ForwardGenerator testGenerator;
+    try {
+      testGenerator = getGenerator();
+    } catch (RandoopInputException e) {
+      fail("Input error: " + e);
+      throw new Error("dead code");
+    }
 
     testGenerator.explore();
     List<ExecutableSequence> rTests = testGenerator.getRegressionSequences();
@@ -118,18 +135,20 @@ public class CoveredClassTest {
     assertTrue("should be no regression tests", rTests.isEmpty());
     assertFalse("should be no error tests", !eTests.isEmpty());
 
-    Class<?> ac = null;
+    Class<?> ac;
     try {
       ac = TypeNames.getTypeForName("instrument.testcase.A");
     } catch (ClassNotFoundException e) {
       fail("cannot find class: " + e);
+      throw new Error("dead code");
     }
 
-    Class<?> cc = null;
+    Class<?> cc;
     try {
       cc = TypeNames.getTypeForName("instrument.testcase.C");
     } catch (ClassNotFoundException e) {
       fail("cannot find class: " + e);
+      throw new Error("dead code");
     }
 
     for (ExecutableSequence e : rTests) {
@@ -146,7 +165,13 @@ public class CoveredClassTest {
     GenInputsAbstract.require_covered_classes = new File("instrument/testcase/coveredclasses.txt");
     // setup classes
 
-    ForwardGenerator testGenerator = getGenerator();
+    ForwardGenerator testGenerator;
+    try {
+      testGenerator = getGenerator();
+    } catch (RandoopInputException e) {
+      fail("Input error: " + e);
+      throw new Error("dead code");
+    }
 
     testGenerator.explore();
     List<ExecutableSequence> rTests = testGenerator.getRegressionSequences();
@@ -156,18 +181,20 @@ public class CoveredClassTest {
     assertTrue("should have some regression tests", !rTests.isEmpty());
     assertFalse("don't expect error tests", !eTests.isEmpty());
 
-    Class<?> ac = null;
+    Class<?> ac;
     try {
       ac = TypeNames.getTypeForName("instrument.testcase.A");
     } catch (ClassNotFoundException e) {
       fail("cannot find class: " + e);
+      throw new Error("dead code");
     }
 
-    Class<?> cc = null;
+    Class<?> cc;
     try {
       cc = TypeNames.getTypeForName("instrument.testcase.C");
     } catch (ClassNotFoundException e) {
       fail("cannot find class: " + e);
+      throw new Error("dead code");
     }
 
     for (ExecutableSequence e : rTests) {
@@ -176,7 +203,7 @@ public class CoveredClassTest {
     }
   }
 
-  private ForwardGenerator getGenerator() {
+  private ForwardGenerator getGenerator() throws RandoopInputException {
     Set<String> classnames = GenInputsAbstract.getClassnamesFromArgs();
     Set<String> coveredClassnames =
         GenInputsAbstract.getStringSetFromFile(
@@ -184,27 +211,29 @@ public class CoveredClassTest {
     Set<String> omitFields =
         GenInputsAbstract.getStringSetFromFile(GenInputsAbstract.omit_field_list, "field list");
     VisibilityPredicate visibility = new PublicVisibilityPredicate();
-    ReflectionPredicate reflectionPredicate =
-        new DefaultReflectionPredicate(GenInputsAbstract.omitmethods, omitFields);
+    ReflectionPredicate reflectionPredicate = new DefaultReflectionPredicate(omitFields);
     ClassNameErrorHandler classNameErrorHandler = new ThrowClassNameError();
     Set<String> methodSignatures =
         GenInputsAbstract.getStringSetFromFile(methodlist, "method list");
 
-    OperationModel operationModel = null;
+    OperationModel operationModel;
     try {
       operationModel =
           OperationModel.createModel(
               visibility,
               reflectionPredicate,
+              GenInputsAbstract.omitmethods,
               classnames,
               coveredClassnames,
               methodSignatures,
               classNameErrorHandler,
               GenInputsAbstract.literals_file);
-    } catch (OperationParseException e) {
+    } catch (SignatureParseException e) {
       fail("operation parse exception thrown: " + e);
+      throw new Error("dead code");
     } catch (NoSuchMethodException e) {
       fail("Method not found: " + e);
+      throw new Error("dead code");
     }
     assert operationModel != null;
 
@@ -221,12 +250,13 @@ public class CoveredClassTest {
         GenInputsAbstract.getStringSetFromFile(
             GenInputsAbstract.observers, "observer", "//.*", null);
 
-    MultiMap<Type, TypedOperation> observerMap = null;
+    MultiMap<Type, TypedOperation> observerMap;
     try {
       observerMap = operationModel.getObservers(observerSignatures);
     } catch (OperationParseException e) {
       System.out.printf("Error: parse exception thrown while reading observers: %s%n", e);
       System.exit(1);
+      throw new Error("dead code");
     }
     assert observerMap != null;
     Set<TypedOperation> observers = new LinkedHashSet<>();
@@ -240,13 +270,13 @@ public class CoveredClassTest {
             model, observers, new GenInputsAbstract.Limits(), componentMgr, listenerMgr);
     GenTests genTests = new GenTests();
 
-    TypedOperation objectConstructor = null;
+    TypedOperation objectConstructor;
     try {
       objectConstructor = TypedOperation.forConstructor(Object.class.getConstructor());
     } catch (NoSuchMethodException e) {
       fail("failed to get Object constructor: " + e);
+      throw new Error("dead code");
     }
-    assert objectConstructor != null : "object constructor is null";
 
     Sequence newObj = new Sequence().extend(objectConstructor);
     Set<Sequence> excludeSet = new LinkedHashSet<>();
@@ -258,11 +288,14 @@ public class CoveredClassTest {
     testGenerator.addTestPredicate(isOutputTest);
 
     ContractSet contracts = operationModel.getContracts();
-    Set<TypedOperation> excludeAsObservers = new LinkedHashSet<>();
     TestCheckGenerator checkGenerator =
-        genTests.createTestCheckGenerator(visibility, contracts, observerMap, excludeAsObservers);
+        genTests.createTestCheckGenerator(visibility, contracts, observerMap);
     testGenerator.addTestCheckGenerator(checkGenerator);
     testGenerator.addExecutionVisitor(new CoveredClassVisitor(operationModel.getCoveredClasses()));
+
+    TestUtils.setOperationLog(testGenerator);
+    TestUtils.setSelectionLog();
+
     return testGenerator;
   }
 }

@@ -5,16 +5,16 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.TreeSet;
 import java.util.regex.Pattern;
 import plume.EntryReader;
 import plume.Options;
@@ -25,26 +25,34 @@ import randoop.BugInRandoopException;
 import randoop.DummyVisitor;
 import randoop.ExecutionVisitor;
 import randoop.Globals;
+import randoop.MethodReplacements;
 import randoop.MultiVisitor;
+import randoop.execution.TestEnvironment;
 import randoop.generation.AbstractGenerator;
 import randoop.generation.ComponentManager;
 import randoop.generation.ForwardGenerator;
-import randoop.generation.OperationHistoryLogger;
 import randoop.generation.RandoopGenerationError;
 import randoop.generation.RandoopListenerManager;
 import randoop.generation.SeedSequences;
+import randoop.generation.TestUtils;
 import randoop.instrument.CoveredClassVisitor;
 import randoop.operation.Operation;
 import randoop.operation.OperationParseException;
 import randoop.operation.TypedOperation;
+import randoop.output.CodeWriter;
+import randoop.output.FailingTestFilter;
 import randoop.output.JUnitCreator;
 import randoop.output.JavaFileWriter;
+import randoop.output.MinimizerWriter;
+import randoop.output.RandoopOutputException;
 import randoop.reflection.DefaultReflectionPredicate;
 import randoop.reflection.OperationModel;
 import randoop.reflection.PackageVisibilityPredicate;
 import randoop.reflection.PublicVisibilityPredicate;
 import randoop.reflection.RandoopInstantiationError;
+import randoop.reflection.RawSignature;
 import randoop.reflection.ReflectionPredicate;
+import randoop.reflection.SignatureParseException;
 import randoop.reflection.VisibilityPredicate;
 import randoop.sequence.ExecutableSequence;
 import randoop.sequence.Sequence;
@@ -78,7 +86,8 @@ import randoop.util.predicate.Predicate;
 
 public class GenTests extends GenInputsAbstract {
 
-  public static final String NO_CLASSES_TO_TEST = "There are no classes to test. Exiting.";
+  // If this is changed, also change RandoopSystemTest.NO_OPERATIONS_TO_TEST
+  private static final String NO_OPERATIONS_TO_TEST = "There are no operations to test. Exiting.";
 
   private static final String command = "gentests";
 
@@ -106,6 +115,7 @@ public class GenTests extends GenInputsAbstract {
           + "--testclass=java.util.TreeSet";
 
   private static final List<String> notes;
+  public static final String TEST_METHOD_NAME_PREFIX = "test";
 
   private BlockStmt afterAllFixtureBody;
   private BlockStmt afterEachFixtureBody;
@@ -148,7 +158,7 @@ public class GenTests extends GenInputsAbstract {
   }
 
   @Override
-  public boolean handle(String[] args) throws RandoopTextuiException {
+  public boolean handle(String[] args) throws RandoopTextuiException, RandoopInputException {
 
     try {
       String[] nonargs = options.parse(args);
@@ -160,13 +170,6 @@ public class GenTests extends GenInputsAbstract {
     }
 
     checkOptionsValid();
-
-    // Check that there are classes to test
-    if (classlist == null && methodlist == null && testclass.isEmpty()) {
-      System.out.println("You must specify some classes or methods to test.");
-      System.out.println("Use the --classlist, --testclass, or --methodlist options.");
-      System.exit(1);
-    }
 
     Randomness.setSeed(randomseed);
     if (GenInputsAbstract.selection_log != null) {
@@ -191,67 +194,45 @@ public class GenTests extends GenInputsAbstract {
     /*
      * If there is fixture code check that it can be parsed first
      */
-    boolean badFixtureText = false;
-
-    try {
-      afterAllFixtureBody =
-          JUnitCreator.parseFixture(getFileText(GenInputsAbstract.junit_after_all));
-    } catch (ParseException e) {
-      System.out.println("Error in after-all fixture text at token " + e.currentToken);
-      badFixtureText = true;
-    }
-    try {
-      afterEachFixtureBody =
-          JUnitCreator.parseFixture(getFileText(GenInputsAbstract.junit_after_each));
-    } catch (ParseException e) {
-      System.out.println("Error in after-each fixture text at token " + e.currentToken);
-      badFixtureText = true;
-    }
-    try {
-      beforeAllFixtureBody =
-          JUnitCreator.parseFixture(getFileText(GenInputsAbstract.junit_before_all));
-    } catch (ParseException e) {
-      System.out.println("Error in before-all fixture text at token " + e.currentToken);
-      badFixtureText = true;
-    }
-    try {
-      beforeEachFixtureBody =
-          JUnitCreator.parseFixture(getFileText(GenInputsAbstract.junit_before_each));
-    } catch (ParseException e) {
-      System.out.println("Error in before-each fixture text at token " + e.currentToken);
-      badFixtureText = true;
-    }
-    if (badFixtureText) {
+    if (!getFixtureCode()) {
       System.exit(1);
     }
 
     /*
      * Setup model of classes under test
      */
-    // get names of classes under test
+    // Get names of classes under test
     Set<String> classnames = GenInputsAbstract.getClassnamesFromArgs();
 
-    // get names of classes that must be covered by output tests
+    // Get names of classes that must be covered by output tests
     Set<String> coveredClassnames =
         GenInputsAbstract.getStringSetFromFile(require_covered_classes, "coverage class names");
 
-    // get names of fields to be omitted
+    // Get names of fields to be omitted
     Set<String> omitFields = GenInputsAbstract.getStringSetFromFile(omit_field_list, "field list");
     omitFields.addAll(omit_field);
 
     VisibilityPredicate visibility;
-    if (GenInputsAbstract.junit_package_name == null
-        || GenInputsAbstract.only_test_public_members) {
-      System.out.println("not using package " + GenInputsAbstract.junit_package_name);
+    if (GenInputsAbstract.junit_package_name == null) {
       visibility = new PublicVisibilityPredicate();
+    } else if (GenInputsAbstract.only_test_public_members) {
+      visibility = new PublicVisibilityPredicate();
+      if (GenInputsAbstract.junit_package_name != null) {
+        System.out.println(
+            "Not using package "
+                + GenInputsAbstract.junit_package_name
+                + " since --only-test-public-members set");
+      }
     } else {
       visibility = new PackageVisibilityPredicate(GenInputsAbstract.junit_package_name);
     }
 
     omitmethods.addAll(readOmitMethods(omitmethods_list));
+    if (!GenInputsAbstract.dont_omit_replaced_methods) {
+      omitmethods.addAll(createPatternsFromSignatures(MethodReplacements.getSignatureList()));
+    }
 
-    ReflectionPredicate reflectionPredicate =
-        new DefaultReflectionPredicate(omitmethods, omitFields);
+    ReflectionPredicate reflectionPredicate = new DefaultReflectionPredicate(omitFields);
 
     ClassNameErrorHandler classNameErrorHandler = new ThrowClassNameError();
     if (silently_ignore_bad_class_names) {
@@ -269,12 +250,13 @@ public class GenTests extends GenInputsAbstract {
           OperationModel.createModel(
               visibility,
               reflectionPredicate,
+              omitmethods,
               classnames,
               coveredClassnames,
               methodSignatures,
               classNameErrorHandler,
               GenInputsAbstract.literals_file);
-    } catch (OperationParseException e) {
+    } catch (SignatureParseException e) {
       System.out.printf("%nError: parse exception thrown %s%n", e);
       System.out.println("Exiting Randoop.");
       System.exit(1);
@@ -306,15 +288,13 @@ public class GenTests extends GenInputsAbstract {
     }
     assert operationModel != null;
 
-    if (!operationModel.hasClasses()) {
-      System.out.println(NO_CLASSES_TO_TEST);
-      System.exit(1);
-    }
-
     List<TypedOperation> operations = operationModel.getOperations();
 
-    if (operations.isEmpty()) {
-      System.out.println("There are no methods to test. Exiting.");
+    /*
+     * Stop if there is only 1 operation. This will be Object().
+     */
+    if (operations.size() <= 1) {
+      System.out.println(NO_OPERATIONS_TO_TEST);
       System.exit(1);
     }
     if (GenInputsAbstract.progressdisplay) {
@@ -374,14 +354,10 @@ public class GenTests extends GenInputsAbstract {
             literalsTermFrequency);
 
     /*
-     * setup for check generation
+     * Create the test check generator for the contracts and observers
      */
     ContractSet contracts = operationModel.getContracts();
-
-    Set<TypedOperation> excludeAsObservers = new LinkedHashSet<>();
-    // TODO add Object.toString() and Object.hashCode() to exclude set
-    TestCheckGenerator testGen =
-        createTestCheckGenerator(visibility, contracts, observerMap, excludeAsObservers);
+    TestCheckGenerator testGen = createTestCheckGenerator(visibility, contracts, observerMap);
 
     explorer.addTestCheckGenerator(testGen);
 
@@ -389,7 +365,7 @@ public class GenTests extends GenInputsAbstract {
      * Setup for test predicate
      */
     // Always exclude a singleton sequence with just new Object()
-    TypedOperation objectConstructor = null;
+    TypedOperation objectConstructor;
     try {
       objectConstructor = TypedOperation.forConstructor(Object.class.getConstructor());
     } catch (NoSuchMethodException e) {
@@ -459,10 +435,7 @@ public class GenTests extends GenInputsAbstract {
       Log.logLine("Initial sequences (seeds):");
       componentMgr.log();
     }
-    if (GenInputsAbstract.operation_history_log != null) {
-      SimpleLog logger = new SimpleLog(GenInputsAbstract.operation_history_log);
-      explorer.setOperationHistoryLogger(new OperationHistoryLogger(logger));
-    }
+    TestUtils.setOperationLog(GenInputsAbstract.operation_history_log, explorer);
 
     /* Generate tests */
     try {
@@ -496,26 +469,36 @@ public class GenTests extends GenInputsAbstract {
             beforeEachFixtureBody,
             afterEachFixtureBody);
 
+    JavaFileWriter javaFileWriter = new JavaFileWriter(junit_output_dir);
     if (!GenInputsAbstract.no_error_revealing_tests) {
-      List<ExecutableSequence> errorSequences = explorer.getErrorTestSequences();
-      if (!errorSequences.isEmpty()) {
-        outputErrorTests(junitCreator, errorSequences);
-      } else {
-        if (GenInputsAbstract.progressdisplay) {
-          System.out.printf("%nNo error-revealing tests to output.%n");
-        }
+      CodeWriter codeWriter = javaFileWriter;
+      if (GenInputsAbstract.minimize_error_test || GenInputsAbstract.stop_on_error_test) {
+        codeWriter = new MinimizerWriter(javaFileWriter);
       }
+      writeTestFiles(
+          junitCreator,
+          explorer.getErrorTestSequences(),
+          codeWriter,
+          GenInputsAbstract.error_test_basename,
+          "Error-revealing");
     }
 
     if (!GenInputsAbstract.no_regression_tests) {
-      List<ExecutableSequence> regressionSequences = explorer.getRegressionSequences();
-      if (!regressionSequences.isEmpty()) {
-        outputRegressionTests(junitCreator, regressionSequences);
-      } else {
-        if (GenInputsAbstract.progressdisplay) {
-          System.out.printf("No regression tests to output.%n");
-        }
+      final TestEnvironment testEnvironment = new TestEnvironment(classpath);
+      String agentPathString = MethodReplacements.getAgentPath();
+      String agentArgs = MethodReplacements.getAgentArgs();
+      if (agentPathString != null && !agentPathString.isEmpty()) {
+        Path agentPath = Paths.get(agentPathString);
+        testEnvironment.setReplaceCallAgent(agentPath, agentArgs);
       }
+
+      FailingTestFilter codeWriter = new FailingTestFilter(testEnvironment, javaFileWriter);
+      writeTestFiles(
+          junitCreator,
+          explorer.getRegressionSequences(),
+          codeWriter,
+          GenInputsAbstract.regression_test_basename,
+          "Regression");
     }
 
     if (GenInputsAbstract.progressdisplay) {
@@ -536,6 +519,117 @@ public class GenTests extends GenInputsAbstract {
   }
 
   /**
+   * Creates the test classes for the test sequences using the {@link JUnitCreator} and then writes
+   * the files using the {@link CodeWriter}. Writes the test suite if {@link
+   * GenInputsAbstract#junit_reflection_allowed} is true, or the test driver, otherwise.
+   *
+   * <p>Class names are numbered with {@code basename} as the prefix. The package for tests is
+   * {@link GenInputsAbstract#junit_package_name}.
+   *
+   * @param junitCreator the {@link JUnitCreator} to create the test class source
+   * @param testSequences a list of {@link ExecutableSequence} objects for test methods
+   * @param codeWriter the {@link CodeWriter} to output the test classes
+   * @param basename the prefix for the class name
+   * @param testKind a {@code String} indicating the kind of tests for logging and error messages
+   */
+  private void writeTestFiles(
+      JUnitCreator junitCreator,
+      List<ExecutableSequence> testSequences,
+      CodeWriter codeWriter,
+      String basename,
+      String testKind) {
+    if (testSequences.isEmpty()) {
+      if (GenInputsAbstract.progressdisplay) {
+        System.out.printf("%nNo " + testKind.toLowerCase() + " tests to output%n");
+      }
+      return;
+    }
+    if (GenInputsAbstract.progressdisplay) {
+      System.out.printf("%n%s test output:%n", testKind);
+      System.out.printf("%s test count: %d%n", testKind, testSequences.size());
+      System.out.printf("Writing JUnit tests...%n");
+    }
+    try {
+      List<File> testFiles = new ArrayList<>();
+
+      // Create and write test classes.
+      LinkedHashMap<String, CompilationUnit> testMap =
+          getTestASTMap(basename, testSequences, junitCreator);
+      for (Map.Entry<String, CompilationUnit> entry : testMap.entrySet()) {
+        String classname = entry.getKey();
+        String classSource = entry.getValue().toString();
+        testFiles.add(
+            codeWriter.writeClassCode(
+                GenInputsAbstract.junit_package_name, classname, classSource));
+      }
+
+      // Create and write suite or driver class.
+      String driverName;
+      String classSource;
+      if (GenInputsAbstract.junit_reflection_allowed) {
+        driverName = basename;
+        classSource = junitCreator.createTestSuite(driverName, testMap.keySet());
+      } else {
+        driverName = basename + "Driver";
+        classSource = junitCreator.createTestDriver(driverName, testMap.keySet());
+      }
+      testFiles.add(
+          codeWriter.writeUnmodifiedClassCode(
+              GenInputsAbstract.junit_package_name, driverName, classSource));
+      if (GenInputsAbstract.progressdisplay) {
+        System.out.println();
+        for (File f : testFiles) {
+          System.out.printf("Created file %s%n", f.getAbsolutePath());
+        }
+      }
+    } catch (RandoopOutputException e) {
+      System.out.printf("%nError writing " + testKind.toLowerCase() + " tests: " + e.getMessage());
+      System.exit(1);
+    }
+  }
+
+  /**
+   * Create fixture code from {@link GenInputsAbstract#junit_after_all}, {@link
+   * GenInputsAbstract#junit_after_each}, {@link GenInputsAbstract#junit_before_all}, and {@link
+   * GenInputsAbstract#junit_before_each} and set fixture body variables.
+   *
+   * @return true if all fixtures were read without error, false, otherwise
+   */
+  private boolean getFixtureCode() {
+    boolean badFixtureText = false;
+
+    try {
+      afterAllFixtureBody =
+          JUnitCreator.parseFixture(getFileText(GenInputsAbstract.junit_after_all));
+    } catch (ParseException e) {
+      System.out.println("Error in after-all fixture text at token " + e.currentToken);
+      badFixtureText = true;
+    }
+    try {
+      afterEachFixtureBody =
+          JUnitCreator.parseFixture(getFileText(GenInputsAbstract.junit_after_each));
+    } catch (ParseException e) {
+      System.out.println("Error in after-each fixture text at token " + e.currentToken);
+      badFixtureText = true;
+    }
+    try {
+      beforeAllFixtureBody =
+          JUnitCreator.parseFixture(getFileText(GenInputsAbstract.junit_before_all));
+    } catch (ParseException e) {
+      System.out.println("Error in before-all fixture text at token " + e.currentToken);
+      badFixtureText = true;
+    }
+    try {
+      beforeEachFixtureBody =
+          JUnitCreator.parseFixture(getFileText(GenInputsAbstract.junit_before_each));
+    } catch (ParseException e) {
+      System.out.println("Error in before-each fixture text at token " + e.currentToken);
+      badFixtureText = true;
+    }
+    return !badFixtureText;
+  }
+
+  /**
    * Returns patterns read from the given file.
    *
    * @param file the file to read from, may be null
@@ -543,7 +637,7 @@ public class GenTests extends GenInputsAbstract {
    */
   private Set<Pattern> readOmitMethods(File file) {
     Set<Pattern> result = new LinkedHashSet<>();
-    // Read method omissions from user provided file
+    // Read method omissions from user-provided file
     if (file != null) {
       try (EntryReader er = new EntryReader(file, "^#.*", null)) {
         for (String line : er) {
@@ -560,6 +654,41 @@ public class GenTests extends GenInputsAbstract {
       }
     }
     return result;
+  }
+
+  /**
+   * Creates a list of signature strings (see {@link RawSignature#toString()} to a list of {@code
+   * Pattern}.
+   *
+   * @param signatures the list of signature strings
+   * @return the list of patterns for the signature strings
+   */
+  private List<Pattern> createPatternsFromSignatures(List<String> signatures) {
+    List<Pattern> patterns = new ArrayList<>();
+    for (String signatureString : signatures) {
+      patterns.add(signatureToPattern(signatureString));
+    }
+    return patterns;
+  }
+
+  /**
+   * Converts a signature string (see {@link RawSignature#toString()} to a {@code Pattern} that
+   * matches that string.
+   *
+   * @param signatureString the string representation of a signature
+   * @return the pattern to match {@code signatureString}
+   */
+  private Pattern signatureToPattern(String signatureString) {
+    String patternString =
+        signatureString
+            .replaceAll(" ", "")
+            .replaceAll("\\.", "\\\\.")
+            .replaceAll("\\(", "\\\\(")
+            .replaceAll("\\)", "\\\\)")
+            .replaceAll("\\$", "\\\\$")
+            .replaceAll("\\[", "\\\\[")
+            .replaceAll("\\]", "\\\\]");
+    return Pattern.compile(patternString);
   }
 
   /**
@@ -593,28 +722,30 @@ public class GenTests extends GenInputsAbstract {
       Log.log(String.format("Full sequence:%n%s%n", e.getSequence()));
       Log.log(String.format("Input subsequence:%n%s%n", subsequence.toCodeString()));
 
-      Set<String> callSet = new TreeSet<>();
-
-      Iterator<Sequence> s_i = explorer.getAllSequences().iterator();
-      if (s_i.hasNext()) {
-        Sequence s = s_i.next();
-        while (!subsequence.equals(s) && s_i.hasNext()) {
-          s = s_i.next();
+      /*
+       * Get the set of operations executed since the first execution of the flaky subsequence
+       */
+      List<String> executedOperationTrace = new ArrayList<>();
+      boolean flakySequenceFound = false;
+      for (Sequence sequence : explorer.getAllSequences()) {
+        // Look for occurrence of flaky sequence
+        if (subsequence.equals(sequence)) {
+          flakySequenceFound = true;
         }
-        while (s_i.hasNext()) {
-          s = s_i.next();
-          for (int i = 0; i < s.statements.size(); i++) {
-            Operation operation = s.statements.get(i).getOperation();
+        // Once flaky sequence found, collect the operations executed
+        if (flakySequenceFound) {
+          for (int i = 0; i < sequence.statements.size(); i++) {
+            Operation operation = sequence.statements.get(i).getOperation();
             if (!operation.isNonreceivingValue()) {
-              callSet.add(operation.toString());
+              executedOperationTrace.add(operation.toString());
             }
           }
         }
       }
 
-      if (!callSet.isEmpty()) {
+      if (!executedOperationTrace.isEmpty()) {
         Log.logLine("Operations performed since subsequence first executed:");
-        for (String opName : callSet) {
+        for (String opName : executedOperationTrace) {
           Log.logLine(opName);
         }
       } else {
@@ -682,124 +813,6 @@ public class GenTests extends GenInputsAbstract {
   }
 
   /**
-   * Output error-revealing tests, applying the minimizer if {@link
-   * GenInputsAbstract#minimize_error_test} or {@link GenInputsAbstract#stop_on_error_test} are set.
-   *
-   * @param junitCreator the JUnit class creator for this run
-   * @param sequences the error-revealing test sequences to output
-   */
-  private void outputErrorTests(JUnitCreator junitCreator, List<ExecutableSequence> sequences) {
-    logOutputStart(sequences.size(), "Error-revealing");
-
-    List<File> files = new ArrayList<>();
-    JavaFileWriter jfw = new JavaFileWriter(junit_output_dir);
-
-    Map<String, CompilationUnit> testMap =
-        getTestASTMap(GenInputsAbstract.error_test_basename, sequences, junitCreator);
-    for (Map.Entry<String, CompilationUnit> entry : testMap.entrySet()) {
-      File testFile =
-          jfw.writeClass(junit_package_name, entry.getKey(), entry.getValue().toString());
-      if (GenInputsAbstract.minimize_error_test || GenInputsAbstract.stop_on_error_test) {
-        // Minimize the error-revealing test that has been output.
-        Minimize.mainMinimize(
-            testFile,
-            Minimize.suiteclasspath,
-            Minimize.testsuitetimeout,
-            Minimize.verboseminimizer);
-      }
-      files.add(testFile);
-    }
-    Set<String> testClassNames = testMap.keySet();
-    files.add(
-        outputTestDriver(GenInputsAbstract.error_test_basename, junitCreator, testClassNames, jfw));
-
-    logTestFiles(files);
-  }
-
-  /**
-   * Output regression tests.
-   *
-   * @param junitCreator the JUnit class creator for this run
-   * @param sequences the regression test sequences to output
-   */
-  private void outputRegressionTests(
-      JUnitCreator junitCreator, List<ExecutableSequence> sequences) {
-    logOutputStart(sequences.size(), "Regression");
-
-    List<File> files = new ArrayList<>();
-    JavaFileWriter jfw = new JavaFileWriter(junit_output_dir);
-    Map<String, CompilationUnit> testMap =
-        getTestASTMap(GenInputsAbstract.regression_test_basename, sequences, junitCreator);
-    for (Map.Entry<String, CompilationUnit> entry : testMap.entrySet()) {
-      File testFile =
-          jfw.writeClass(junit_package_name, entry.getKey(), entry.getValue().toString());
-      files.add(testFile);
-    }
-
-    Set<String> testClassNames = testMap.keySet();
-    files.add(
-        outputTestDriver(
-            GenInputsAbstract.regression_test_basename, junitCreator, testClassNames, jfw));
-
-    logTestFiles(files);
-  }
-
-  /**
-   * Write progress report for starting test output to standard output, if {@link
-   * GenInputsAbstract#progressdisplay} is true.
-   *
-   * @param sequenceCount the number of sequences for output
-   * @param testKind the name of the kind of sequences
-   */
-  private void logOutputStart(int sequenceCount, String testKind) {
-    if (GenInputsAbstract.progressdisplay) {
-      System.out.printf("%n%s test output:%n", testKind);
-      System.out.printf("%s test count: %d%n", testKind, sequenceCount);
-      System.out.printf("Writing JUnit tests...%n");
-    }
-  }
-
-  /**
-   * Write the names of created files to standard output, if {@link
-   * GenInputsAbstract#progressdisplay} is true.
-   *
-   * @param files the list of {@code File} objects
-   */
-  private void logTestFiles(List<File> files) {
-    if (GenInputsAbstract.progressdisplay) {
-      System.out.println();
-      for (File f : files) {
-        System.out.println("Created file: " + f.getAbsolutePath());
-      }
-    }
-  }
-
-  /**
-   * Writes the test driver for the test classes created by the JUnit creator.
-   *
-   * @param junitPrefix the prefix of the driver class name
-   * @param junitCreator the {@link JUnitCreator} used to create test classes
-   * @param testClassNames the set of names of the generated test classes
-   * @param jfw the writer to output the Java file for the test driver
-   * @return the {@code File} for the test driver Java file
-   */
-  private File outputTestDriver(
-      String junitPrefix,
-      JUnitCreator junitCreator,
-      Set<String> testClassNames,
-      JavaFileWriter jfw) {
-    String classSource;
-    String driverName = junitPrefix;
-    if (GenInputsAbstract.junit_reflection_allowed) {
-      classSource = junitCreator.createSuiteClass(driverName, testClassNames);
-    } else {
-      driverName = junitPrefix + "Driver";
-      classSource = junitCreator.createTestDriver(driverName, testClassNames);
-    }
-    return jfw.writeClass(junit_package_name, driverName, classSource);
-  }
-
-  /**
    * Creates the JUnit test classes for the given sequences, in AST (abstract syntax tree) form.
    *
    * @param junitPrefix the class name prefix
@@ -807,18 +820,18 @@ public class GenTests extends GenInputsAbstract {
    * @param junitCreator the JUnit creator to create the abstract syntax trees for the test classes
    * @return mapping from a class name to the abstract syntax tree for the class
    */
-  private Map<String, CompilationUnit> getTestASTMap(
+  private LinkedHashMap<String, CompilationUnit> getTestASTMap(
       String junitPrefix, List<ExecutableSequence> sequences, JUnitCreator junitCreator) {
+
     List<List<ExecutableSequence>> sequencePartition =
         CollectionsExt.formSublists(new ArrayList<>(sequences), testsperfile);
-    Map<String, CompilationUnit> testMap = new LinkedHashMap<>();
-    String methodNamePrefix = "test";
-    String classNameFormat = junitPrefix + "%d";
+
+    LinkedHashMap<String, CompilationUnit> testMap = new LinkedHashMap<>();
     for (int i = 0; i < sequencePartition.size(); i++) {
       List<ExecutableSequence> partition = sequencePartition.get(i);
-      String testClassName = String.format(classNameFormat, i);
+      String testClassName = junitPrefix + i;
       CompilationUnit classAST =
-          junitCreator.createTestClass(testClassName, methodNamePrefix, partition);
+          junitCreator.createTestClass(testClassName, TEST_METHOD_NAME_PREFIX, partition);
       testMap.put(testClassName, classAST);
     }
     return testMap;
@@ -835,26 +848,24 @@ public class GenTests extends GenInputsAbstract {
    * @param visibility the visibility predicate
    * @param contracts the contract checks
    * @param observerMap the map from types to observer methods
-   * @param excludeAsObservers methods to exclude when generating observer map
    * @return the {@code TestCheckGenerator} that reflects command line arguments.
    */
   public TestCheckGenerator createTestCheckGenerator(
       VisibilityPredicate visibility,
       ContractSet contracts,
-      MultiMap<Type, TypedOperation> observerMap,
-      Set<TypedOperation> excludeAsObservers) {
+      MultiMap<Type, TypedOperation> observerMap) {
 
-    // start with checking for invalid exceptions
+    // Start with checking for invalid exceptions.
     ExceptionPredicate isInvalid = new ExceptionBehaviorPredicate(BehaviorType.INVALID);
     TestCheckGenerator testGen =
         new ValidityCheckingVisitor(isInvalid, !GenInputsAbstract.ignore_flaky_tests);
 
-    // extend with contract checker
+    // Extend with contract checker.
     ExceptionPredicate isError = new ExceptionBehaviorPredicate(BehaviorType.ERROR);
     ContractCheckingVisitor contractVisitor = new ContractCheckingVisitor(contracts, isError);
     testGen = new ExtendGenerator(testGen, contractVisitor);
 
-    // and, generate regression tests, unless user says not to
+    // And, generate regression tests, unless user says not to.
     if (!GenInputsAbstract.no_regression_tests) {
       ExceptionPredicate isExpected = new AlwaysFalseExceptionPredicate();
       boolean includeAssertions = true;
@@ -863,13 +874,10 @@ public class GenTests extends GenInputsAbstract {
       } else {
         isExpected = new ExceptionBehaviorPredicate(BehaviorType.EXPECTED);
       }
-      ExpectedExceptionCheckGen expectation;
-      expectation = new ExpectedExceptionCheckGen(visibility, isExpected);
+      ExpectedExceptionCheckGen expectation = new ExpectedExceptionCheckGen(visibility, isExpected);
 
-      RegressionCaptureVisitor regressionVisitor;
-      regressionVisitor =
-          new RegressionCaptureVisitor(
-              expectation, observerMap, excludeAsObservers, visibility, includeAssertions);
+      RegressionCaptureVisitor regressionVisitor =
+          new RegressionCaptureVisitor(expectation, observerMap, visibility, includeAssertions);
 
       testGen = new ExtendGenerator(testGen, regressionVisitor);
     }
@@ -877,7 +885,7 @@ public class GenTests extends GenInputsAbstract {
   }
 
   /**
-   * Print out usage error and stack trace and then exit
+   * Print out usage error and stack trace and then exit.
    *
    * @param format the string format
    * @param args the arguments

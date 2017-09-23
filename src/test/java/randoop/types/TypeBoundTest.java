@@ -44,6 +44,7 @@ public class TypeBoundTest {
     Map<String, TypeVariable> argTypes = getArgumentTypes(WildcardBoundExamples.class);
 
     TypeVariable variable;
+
     variable = argTypes.get("m1");
     assertTrue("TW satisfies " + variable.getName() + " bound", checkBound(variable, twType));
     assertFalse(
@@ -213,6 +214,11 @@ public class TypeBoundTest {
     ArgumentVisitor(Map<String, TypeVariable> argTypes) {
       this.argTypes = argTypes;
       declaredMethods = new LinkedHashSet<>();
+    }
+
+    @Override
+    public void visit(Class<?> c, ReflectionManager reflectionManager) {
+      // do nothing for member class
     }
 
     @Override

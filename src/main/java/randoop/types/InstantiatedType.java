@@ -303,9 +303,9 @@ public class InstantiatedType extends ParameterizedType {
    *   <li><code>Si</code> is identical to <code>Ti</code>
    * </ol>
    *
-   * @see ReferenceType#isInstantiationOf(ReferenceType)
    * @param otherType the other {@link InstantiatedType}
    * @return true if this type is an instantiation of the other type, false otherwise
+   * @see ReferenceType#isInstantiationOf(ReferenceType)
    */
   @Override
   public boolean isInstantiationOf(ReferenceType otherType) {
@@ -331,8 +331,7 @@ public class InstantiatedType extends ParameterizedType {
   @Override
   public Substitution<ReferenceType> getInstantiatingSubstitution(ClassOrInterfaceType goalType) {
     assert goalType.isGeneric();
-    Substitution<ReferenceType> substitution;
-    substitution = super.getInstantiatingSubstitution(goalType);
+    Substitution<ReferenceType> substitution = super.getInstantiatingSubstitution(goalType);
     if (goalType instanceof InstantiatedType) {
       InstantiatedType otherInstType = (InstantiatedType) goalType;
       if (this.instantiatedType.equals(otherInstType.instantiatedType)) {

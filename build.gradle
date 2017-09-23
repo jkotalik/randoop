@@ -24,7 +24,11 @@ plugins {
    */
   id 'com.github.sherter.google-java-format' version '0.6'
 
-  /* Need to exclude src/testinput from directories examined by Error Prone */
+  /*
+   * Plugin that applies Google's Error Prone linter (http://errorprone.info/).
+   * https://github.com/tbroyer/gradle-errorprone-plugin
+   * Elsewhere this file excludes src/testinput from directories examined by Error Prone.
+   */
   id "net.ltgt.errorprone-base" version "0.0.11"
 }
 
@@ -67,6 +71,15 @@ sourceSets {
     }
     resources {
       srcDir 'src/coveredtest/resources'
+    }
+  }
+
+  replacecallTest {
+    java {
+      srcDir 'src/replacecalltest/java'
+    }
+    resources {
+      srcDir 'src/replacecalltest/resources'
     }
   }
 
@@ -119,6 +132,8 @@ configurations {
    */
   coveredTestImplementation.extendsFrom testImplementation
   coveredTestRuntimeOnly.extendsFrom testRuntimeOnly
+  replacecallTestImplementation.extendsFrom testImplementation
+  replacecallTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 dependencies {
@@ -126,6 +141,7 @@ dependencies {
   plume files('lib/plume.jar')
   implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.0'
   implementation group: 'junit', name: 'junit', version: '4.+'
+  implementation files(project(':replacecall').sourceSets.main.output)
 
   /* JavaParser 2.4.0 is the most recent version available with JDK7 jar files. */
   implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '2.4.0'
@@ -142,6 +158,8 @@ dependencies {
   coveredTestImplementation sourceSets.main.output
   coveredTestImplementation sourceSets.test.output
   coveredTestRuntimeOnly project(':covered-class')
+
+  replacecallTestImplementation files(project(':replacecall').sourceSets.main.output)
 
   jacocoagent group: 'org.jacoco', name: 'org.jacoco.agent', version: '0.7.7.201606060606'
 
@@ -203,25 +221,27 @@ tasks.withType(JavaCompile) {
 compileJava.options.compilerArgs = ['-Xlint','-g','-Xlint:-classfile']
 compileTestJava.options.compilerArgs = ['-g','-Xlint:-classfile']
 compileCoveredTestJava.options.compilerArgs = ['-g','-Xlint:-classfile']
+compileReplacecallTestJava.options.compilerArgs = ['-g','-Xlint:-classfile']
 compileSystemTestJava.options.compilerArgs = ['-g','-Xlint:-classfile']
 compileTestInputJava.options.compilerArgs = ['-nowarn','-g','-Xlint:-classfile']
 
 /*
- * Configuration for using error-prone compiler.
+ * Configuration for using Error Prone linter.
  *
  * Only works in Java 8+.
  */
-// TODO: once we run the Interning Checker on Randoop
-// tasks.withType(JavaCompile) {
-//   options.compilerArgs += [ '-Xep:ReferenceEquality:OFF' ]
-// }
-
 import net.ltgt.gradle.errorprone.ErrorProneToolChain
 
 tasks.withType(JavaCompile).each { t ->
   if (JavaVersion.current().isJava8Compatible()) {
     if (!t.name.equals("compileTestInputJava")) {
       t.toolChain ErrorProneToolChain.create(project)
+      t.options.compilerArgs += [
+        // undocumented, and suggestion seems bad
+        '-Xep:NamedParameters:OFF'
+        // TODO: uncomment once we run the Interning Checker on Randoop
+        // '-Xep:ReferenceEquality:OFF'
+        ]
     }
   }
 }
@@ -230,7 +250,7 @@ tasks.withType(JavaCompile).each { t ->
 /*
  * Configuration for clean
  */
-clean.dependsOn ':mapcall:clean'
+clean.dependsOn ':replacecall:clean'
 clean.dependsOn ':covered-class:clean'
 
 /*
@@ -327,6 +347,23 @@ task coveredTest(type: Test, dependsOn: ['copyJars', 'compileTestJava']) {
  */
 check.dependsOn coveredTest
 
+task replacecallTest(type: Test, dependsOn: 'copyJars') {
+  workingDir = sourceSets.replacecallTest.output.resourcesDir
+  testClassesDirs = sourceSets.replacecallTest.output.classesDirs
+  classpath = sourceSets.replacecallTest.runtimeClasspath + files("$buildDir/libs/replacecall-${version}.jar")
+  // use the replacecall agent using the exclusions file from replacecalltest/resources
+  jvmArgs "-javaagent:$buildDir/libs/replacecall-${version}.jar=--dont-transform=replacecall-exclusions.txt,--debug"
+  jvmArgs "-Xbootclasspath/a:$buildDir/libs/replacecall-${version}.jar"
+  testLogging {
+    showStandardStreams = true
+    exceptionFormat = 'full'
+  }
+
+  /* Turn off HTML reports -- handled by testReport task */
+  reports.html.enabled = false
+}
+check.dependsOn replacecallTest
+
 jacocoTestReport {
   group 'Report'
   reports {
@@ -392,6 +429,8 @@ task systemTest(type: Test, dependsOn: [ 'extractJacocoAgent', 'generateWorkingD
   reports.html.enabled = false
 }
 
+systemTest.dependsOn shadowJar
+
 /*
  * Link the systemTest task into the project check task.
  * Includes system tests into the project build task.
@@ -453,7 +492,7 @@ uploadArchives {
   }
 }
 
-task copyJars(type: Copy, dependsOn: [':covered-class:jar', ':mapcall:jar']) {
+task copyJars(type: Copy, dependsOn: [':covered-class:jar', ':replacecall:jar']) {
   from subprojects.collect { it.tasks.withType(Jar) }
   into "$buildDir/libs"
 }
@@ -461,7 +500,7 @@ task copyJars(type: Copy, dependsOn: [':covered-class:jar', ':mapcall:jar']) {
 assemble.dependsOn copyJars
 
 shadowJar {
-  // name should be randoop-all-$version.jar instead of randoop-$version-all.jar
+  // The jar file name is randoop-all-$version.jar
   baseName = 'randoop-all'
   classifier = null
 
@@ -469,7 +508,7 @@ shadowJar {
   exclude '**/default-*.txt'
 
   // don't include either mocks or agent classes
-  // otherwise creates problems for replacement creation of mapcall agent
+  // otherwise creates problems for replacement creation of replacecall agent
   exclude '**/randoop/mock/*'
   exclude '**/randoop/instrument/*'
 
@@ -535,8 +574,16 @@ task clonePlumeLib {
     def plumeFolder = file("$buildDir/utils/plume-lib")
     if ( ! plumeFolder.exists() ) {
       org.ajoberstar.grgit.Grgit.clone(dir: plumeFolder, uri: 'https://github.com/mernst/plume-lib.git')
+      // This chmod command causes errors when pulling, because the clone
+      // of plume-lib has uncommitted changes (changes to execute bits).
+      // Find another way, or use a more restricted command that only
+      // sets execute bits on executable files, not all files in the
+      // bin/ directory.
+      // exec {
+      //   commandLine 'chmod', '-R', '+x', "$buildDir/utils/plume-lib/bin"
+      // }
       exec {
-        commandLine 'chmod', '-R', '+x', "$buildDir/utils/plume-lib/bin"
+        commandLine 'chmod', '+x', "$buildDir/utils/plume-lib/bin/preplace", "$buildDir/utils/plume-lib/bin/html-update-toc"
       }
     } else {
       def grgit = org.ajoberstar.grgit.Grgit.open(dir: plumeFolder)
@@ -740,7 +787,7 @@ task buildRelease(type: DefaultTask, dependsOn: [ 'assemble', 'check', 'publishS
 /* Declares the Gradle version to be used when the wrapper is built */
 task wrapper(type: Wrapper) {
   description "Configure Gradle Wrapper for this project"
-  gradleVersion = '4.0'
+  gradleVersion = '4.1'
 }
 
 /*************** Other tool configs *************/
@@ -749,7 +796,7 @@ task tags(type: Exec, dependsOn: 'clonePlumeLib') {
   group 'Emacs'
   description "Run etags to create an Emacs TAGS table"
   environment PATH: "$System.env.PATH:$buildDir/utils/plume-lib/bin"
-  commandLine "bash", "-c", "find src/ agent/covered-class/src/ agent/mapcall/src/ -name *.java | grep -v src/testinput | sort-directory-order | xargs etags"
+  commandLine "bash", "-c", "find src/ agent/covered-class/src/ agent/replacecall/src/ -name *.java | grep -v src/testinput | sort-directory-order | xargs etags"
 }
 
 /* Make Emacs TAGS table, with only Randoop code (not test code) */

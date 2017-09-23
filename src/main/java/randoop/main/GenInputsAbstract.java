@@ -13,6 +13,7 @@ import plume.Option;
 import plume.OptionGroup;
 import plume.Options;
 import plume.Unpublicized;
+import randoop.Globals;
 import randoop.util.Randomness;
 import randoop.util.ReflectionExecutor;
 
@@ -35,13 +36,13 @@ public abstract class GenInputsAbstract extends CommandHandler {
   }
 
   /**
-   * The fully-qualified name of a class to test; for example, <code>--testclass=java.util.TreeSet
-   * </code>. All of its methods are methods under test. This class is tested in addition to any
-   * specified using <code>--classlist</code>, and must be accessible from the package of the tests
-   * (set with <code>--junit-package-name</code>).
+   * The fully-qualified raw name of a class to test; for example, {@code
+   * --testclass=java.util.TreeSet}. All of its methods are methods under test. This class is tested
+   * in addition to any specified using {@code --classlist}, and must be accessible from the package
+   * of the tests (set with {@code --junit-package-name}).
    */
   ///////////////////////////////////////////////////////////////////
-  @OptionGroup("Code under test:  which methods may be called by a test")
+  @OptionGroup("Code under test:  which members may be used by a test")
   @Option("The fully-qualified name of a class under test")
   public static List<String> testclass = new ArrayList<>();
 
@@ -50,9 +51,9 @@ public abstract class GenInputsAbstract extends CommandHandler {
    *
    * <p>In the file, each class under test is specified by its fully-qualified name on a separate
    * line. See an <a href= "https://randoop.github.io/randoop/manual/class_list_example.txt">
-   * example</a>. These classes are tested in addition to any specified using <code>--testclass
-   * </code>. All classes must be accessible from the package of the tests (set with <code>
-   * --junit-package-name</code>).
+   * example</a>. These classes are tested in addition to any specified using {@code --testclass}.
+   * All classes must be accessible from the package of the tests (set with {@code
+   * --junit-package-name}).
    */
   @Option("File that lists classes under test")
   public static File classlist = null;
@@ -60,47 +61,29 @@ public abstract class GenInputsAbstract extends CommandHandler {
   // A relative URL like <a href="#specifying-methods"> works when this
   // Javadoc is pasted into the manual, but not in Javadoc proper.
   /**
-   * File that lists methods to test.
+   * A file containing a list of methods and constructors to test, each given as a <a
+   * href="#fully-qualified-signature">fully-qualified signature</a> on a separate line.
    *
-   * <p>In the file, each method under test is specified on a separate line. The list of methods
-   * given by this argument augment any methods determined via the <code>--testclass</code> or
-   * <code>--classlist</code> option.
+   * <p>These methods augment any methods from classes given by the <code>--testclass</code> or
+   * <code>--classlist</code> options.
    *
-   * <p>A constructor line begins with <code>"cons :"</code> followed by the classname, the string
-   * {@code <init>}, and the constructor's parameter types enclosed in parentheses. Methods are
-   * specified in a similar way. For example:
-   *
-   * <pre>{@code
-   * cons : Type0.<init>(Type1, Type2, ..., TypeN)
-   * method : Type0.method_name(Type1, Type2, ..., TypeN)
-   * }</pre>
-   *
-   * <p>Each <code>Type<i>i</i></code> must be fully-qualified (include package names).
-   *
-   * <p>See an <a href= "https://randoop.github.io/randoop/manual/method_list_example.txt">
-   * example</a>.
+   * <p>See an <a href= "https://randoop.github.io/randoop/manual/method_list_example.txt">example
+   * file</a>.
    */
   @Option("File that lists methods under test")
   public static File methodlist = null;
 
   /**
-   * Methods whose {@link java.lang.reflect.Method#toString() toString()} matches this regex are not
-   * directly called by test methods. This does not prevent indirect calls to such methods from
-   * other, allowed methods.
+   * A regex that indicates methods that should not be called directly in generated tests. This does
+   * not prevent indirect calls to such methods from other, allowed methods.
    *
-   * <p>Randoop only calls methods that are specified by one of the {@code --testclass}, {@code
-   * --classlist}, or {@code --methodlist} command-line options; the purpose of {@code omitmethods}
-   * --is to override one of those other command-line options.
+   * <p>Randoop will not directly call a method whose <a
+   * href="#fully-qualified-signature">fully-qualified signature</a> matches the regular expression,
+   * or a method inherited from a superclass or interface whose signature matches the regular
+   * expression.
    *
-   * <p>The regex may match a substring of the method name, unless the regex is anchored with {@code
-   * ^} or {@code $}.
-   *
-   * <p>Note:
-   *
-   * <ul>
-   *   <li>If a method is inherited without an override, the pattern must match the superclass
-   *       method.
-   * </ul>
+   * <p>If the regular expression contains anchors "{@code ^}" and "{@code $}", they refer to the
+   * beginning and the end of the signature string.
    */
   @Option("Do not call methods that match regular expression <string>")
   public static List<Pattern> omitmethods = null;
@@ -112,6 +95,14 @@ public abstract class GenInputsAbstract extends CommandHandler {
    */
   @Option("File containing regular expressions for methods to omit")
   public static File omitmethods_list = null;
+
+  /**
+   * Include methods that are otherwise omitted by default. Unless you set this to true, every
+   * method replaced by the <code>replacecall</code> agent is treated as if it had been supplied as
+   * an argument to <code>--omitmethods</code>.
+   */
+  @Option("Include methods that are omitted by default")
+  public static boolean dont_omit_replaced_methods = false;
 
   /**
    * A fully-qualified field name of a field to be excluded from test generation. An accessible
@@ -678,16 +669,16 @@ public abstract class GenInputsAbstract extends CommandHandler {
   public void checkOptionsValid() {
 
     if (alias_ratio < 0 || alias_ratio > 1) {
-      throw new RuntimeException("Alias ratio must be between 0 and 1, inclusive.");
+      throw new RuntimeException("--alias-ratio must be between 0 and 1, inclusive.");
     }
 
     if (null_ratio < 0 || null_ratio > 1) {
-      throw new RuntimeException("Null ratio must be between 0 and 1, inclusive.");
+      throw new RuntimeException("--null-ratio must be between 0 and 1, inclusive.");
     }
 
     if (maxsize <= 0) {
       throw new RuntimeException(
-          "Maximum sequence size must be greater than zero but was " + maxsize);
+          "Maximum sequence size --maxsize must be greater than zero but was " + maxsize);
     }
 
     if (!literals_file.isEmpty() && literals_level == ClassLiteralsMode.NONE) {
@@ -714,21 +705,30 @@ public abstract class GenInputsAbstract extends CommandHandler {
               "Unlikely parameter combination: --timeLimit=%s --attemptedLimit=%s --generatedLimit=%s --outputLimit=%s",
               timeLimit, attemptedLimit, generatedLimit, outputLimit));
     }
+
+    if (classlist == null && methodlist == null && testclass.isEmpty()) {
+      throw new RuntimeException(
+          "You must specify some classes or methods to test."
+              + Globals.lineSep
+              + "Use the --classlist, --testclass, or --methodlist options.");
+    }
   }
 
-  public static Set<String> getClassnamesFromArgs() {
+  public static Set<String> getClassnamesFromArgs() throws RandoopInputException {
     Set<String> classnames = getStringSetFromFile(classlist, "tested classes");
     classnames.addAll(testclass);
     return classnames;
   }
 
-  public static Set<String> getStringSetFromFile(File listFile, String fileDescription) {
+  public static Set<String> getStringSetFromFile(File listFile, String fileDescription)
+      throws RandoopInputException {
     return getStringSetFromFile(listFile, fileDescription, "^#.*", null);
   }
 
   @SuppressWarnings("SameParameterValue")
   public static Set<String> getStringSetFromFile(
-      File listFile, String fileDescription, String commentRegex, String includeRegex) {
+      File listFile, String fileDescription, String commentRegex, String includeRegex)
+      throws RandoopInputException {
     Set<String> elementSet = new LinkedHashSet<>();
     if (listFile != null) {
       try (EntryReader er = new EntryReader(listFile, commentRegex, includeRegex)) {
@@ -739,9 +739,10 @@ public abstract class GenInputsAbstract extends CommandHandler {
           }
         }
       } catch (IOException e) {
-        System.err.printf(
-            "Error while reading %s file %s: %s%n", listFile, fileDescription, e.getMessage());
-        System.exit(1);
+        String message =
+            String.format(
+                "Error while reading %s file %s: %s%n", listFile, fileDescription, e.getMessage());
+        throw new RandoopInputException(message, e);
       }
     }
     return elementSet;

@@ -22,6 +22,7 @@ import randoop.generation.TestUtils;
 import randoop.main.ClassNameErrorHandler;
 import randoop.main.GenInputsAbstract;
 import randoop.main.GenTests;
+import randoop.main.RandoopInputException;
 import randoop.main.ThrowClassNameError;
 import randoop.operation.TypedClassOperation;
 import randoop.operation.TypedOperation;
@@ -57,24 +58,33 @@ public class SpecialCoveredClassTest {
     ReflectionExecutor.usethreads = false;
     GenInputsAbstract.generatedLimit = 10000;
     GenInputsAbstract.outputLimit = 5000;
+    randoop.util.Randomness.setSeed(0);
 
-    Set<String> classnames = GenInputsAbstract.getClassnamesFromArgs();
-    Set<String> coveredClassnames =
-        GenInputsAbstract.getStringSetFromFile(
-            GenInputsAbstract.require_covered_classes, "coverage class names");
-    Set<String> omitFields = new HashSet<>();
+    Set<String> classnames = null;
+    Set<String> coveredClassnames = null;
     VisibilityPredicate visibility = new PublicVisibilityPredicate();
-    ReflectionPredicate reflectionPredicate =
-        new DefaultReflectionPredicate(GenInputsAbstract.omitmethods, omitFields);
-    Set<String> methodSignatures =
-        GenInputsAbstract.getStringSetFromFile(GenInputsAbstract.methodlist, "method list");
+    Set<String> omitFields = new HashSet<>();
+    ReflectionPredicate reflectionPredicate = new DefaultReflectionPredicate(omitFields);
+    Set<String> methodSignatures = null;
+    try {
+      classnames = GenInputsAbstract.getClassnamesFromArgs();
+      coveredClassnames =
+          GenInputsAbstract.getStringSetFromFile(
+              GenInputsAbstract.require_covered_classes, "coverage class names");
+      methodSignatures =
+          GenInputsAbstract.getStringSetFromFile(GenInputsAbstract.methodlist, "method list");
+    } catch (RandoopInputException e) {
+      fail("Input error: " + e.getMessage());
+    }
     ClassNameErrorHandler classNameErrorHandler = new ThrowClassNameError();
+
     OperationModel operationModel = null;
     try {
       operationModel =
           OperationModel.createModel(
               visibility,
               reflectionPredicate,
+              GenInputsAbstract.omitmethods,
               classnames,
               coveredClassnames,
               methodSignatures,
@@ -102,7 +112,7 @@ public class SpecialCoveredClassTest {
     //
     List<TypedOperation> model = operationModel.getOperations();
     //
-    assertEquals("model operations", 6, model.size());
+    assertEquals("model operations", 7, model.size());
     //
     Set<Sequence> components = new LinkedHashSet<>();
     components.addAll(SeedSequences.defaultSeeds());
@@ -138,13 +148,13 @@ public class SpecialCoveredClassTest {
             GenInputsAbstract.require_classname_in_test);
     testGenerator.addTestPredicate(isOutputTest);
     ContractSet contracts = operationModel.getContracts();
-    Set<TypedOperation> excludeAsObservers = new LinkedHashSet<>();
     MultiMap<Type, TypedOperation> observerMap = new MultiMap<>();
     TestCheckGenerator checkGenerator =
-        genTests.createTestCheckGenerator(visibility, contracts, observerMap, excludeAsObservers);
+        genTests.createTestCheckGenerator(visibility, contracts, observerMap);
     testGenerator.addTestCheckGenerator(checkGenerator);
     testGenerator.addExecutionVisitor(new CoveredClassVisitor(coveredClasses));
-    //    TestUtils.setOperationLog(testGenerator);
+    TestUtils.setOperationLog(testGenerator);
+    TestUtils.setSelectionLog();
     testGenerator.explore();
     //    testGenerator.getOperationHistory().outputTable();
     List<ExecutableSequence> rTests = testGenerator.getRegressionSequences();

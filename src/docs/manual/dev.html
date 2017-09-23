@@ -29,6 +29,7 @@
     </ul></li>
   <li><a href="#testing-randoop">Testing Randoop</a>
     <ul>
+      <li><a href="#travis-tests">Running tests under Travis-CI</a></li>
       <li><a href="#addtests">Adding tests</a>
         <ul>
           <li><a href="#unit-tests">Unit tests</a></li>
@@ -178,8 +179,8 @@
     <td>to compile the <code>test</code> source set</td>
   </tr>
   <tr>
-    <td><code>./gradlew compileAgentTestJava</code></td>
-    <td>to compile the <code>agentTest</code> source set</td>
+    <td><code>./gradlew compileCoveredTestJava</code></td>
+    <td>to compile the <code>coveredTest</code> source set</td>
   </tr>
   <tr>
     <td><code>./gradlew manual</code></td>
@@ -192,9 +193,10 @@
   A source set is a grouping of source files that can have its own set of
   dependencies and tasks.
   For instance, in the Randoop <code>build.gradle</code> there is the
-  <code>agentTest</code> source set that is separate from the <code>test</code> source
-  set because the test classes must run using the <code>covered-class</code> Java
-  agent.
+  <code>coveredTest</code> and <code>replacecallTest</code> source sets that
+  are separate from the <code>test</code> sourceset because the test classes
+  must run using the <code>covered-class</code> and <code>replacecall</code> Java
+  agents.
   The Gradle Java plugin normally has two source sets named <code>main</code> and <code>test</code>,
   and the Randoop build script defines others to better structure the build process.
 </p>
@@ -313,17 +315,6 @@ To run the Randoop tests:
 <pre><code>./gradlew check</code></pre>
 
 <p>
-A standard practice is to create a
-branch and push it to the Randoop repository or to your own fork.  Travis will
-test it; if it succeeds, you can merge it.  If it fails, you will be notified by
-email, and you can fix it without having destabilized the master branch.
-The <a href="https://travis-ci.org/randoop/randoop">Travis tests</a> are
-equivalent to <code>./gradlew clean build</code>, and they
-currently pass on the master branch if this icon is green:
-<img src="https://api.travis-ci.org/randoop/randoop.svg?branch=master" alt="Randoop Travis status icon"/>.
-</p>
-
-<p>
 You can run a subset of the tests by using the <code>--tests</code>
 option on the command line.
 For instance,
@@ -335,7 +326,7 @@ For instance,
 <p>
 The system tests write logs to the directory
 <code>build/working-directories/<em>test-name</em></code>.
-You can create additional logs (as produced by 
+You can create additional logs (as produced by
 <a href="index.html#option:selection-log"><code>--selection-log</code></a> or
 <a href="index.html#option:operation-history-log"><code>--operation-history-log</code></a>)
 can be set from the command-line by setting the system properties
@@ -353,6 +344,40 @@ tests.
 </p>
 
 
+<h2 id="travis-tests">Running tests under Travis-CI</h2>
+
+<p>
+<a href="https://travis-ci.org/randoop/randoop">Travis-CI runs the Randoop tests</a>.
+The Travis tests are
+equivalent to <code>./gradlew clean build</code>, and they
+currently pass on the master branch if this icon is green:
+<img src="https://api.travis-ci.org/randoop/randoop.svg?branch=master" alt="Randoop Travis status icon"/>.
+</p>
+
+<p>
+A standard practice is to create a
+branch and push it to the Randoop repository or to your own fork.  Travis will
+test it; if it succeeds, you can merge it.  If it fails, you will be notified by
+email, and you can fix it without having destabilized the master branch.
+</p>
+
+<p>
+The Travis tests run in a Docker container.  If you are not able to reproduce a Travis test failure, then run the Randoop tests under Docker.  To do so, first start a Docker container:
+</p>
+<pre>
+docker pull mdernst/ubuntu-for-randoop-jdk8
+docker run -it mdernst/ubuntu-for-randoop-jdk8 /bin/bash
+</pre>
+<p>
+Then, in the Docker container:
+</p>
+<pre>
+git clone --quiet -b BRANCHNAME --depth 9 https://github.com/USER/randoop randoop-fork-USER-branch-BRANCHNAME
+cd randoop-fork-USER-branch-BRANCHNAME
+./.travis-build.sh test
+</pre>
+
+
 <h2 id="addtests">Adding tests</h2>
 
 <p>
@@ -360,7 +385,7 @@ tests.
   Randoop has three kinds of tests:
   tests of Randoop internal classes (under directory <code>src/test</code>),
   tests of Randoop Java agents (under directories <code>src/coveredtest</code>
-  and <code>src/mapcalltest</code>), and
+  and <code>src/replacecalltest</code>), and
   system tests that run Randoop on input classes.
   All of the tests are written as JUnit classes, but are separate because each
   needs to be executed differently.

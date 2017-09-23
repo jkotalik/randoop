@@ -109,9 +109,10 @@ public class ForwardExplorerTests2 {
     ReflectionManager mgr = new ReflectionManager(visibility);
     for (Class<?> c : classes) {
       ClassOrInterfaceType classType = ClassOrInterfaceType.forClass(c);
-      mgr.apply(
-          new OperationExtractor(classType, model, new DefaultReflectionPredicate(), visibility),
-          c);
+      final OperationExtractor extractor =
+          new OperationExtractor(classType, new DefaultReflectionPredicate(), visibility);
+      mgr.apply(extractor, c);
+      model.addAll(extractor.getOperations());
     }
     return model;
   }
@@ -119,9 +120,6 @@ public class ForwardExplorerTests2 {
   private static TestCheckGenerator createChecker(ContractSet contracts) {
     return (new GenTests())
         .createTestCheckGenerator(
-            new PublicVisibilityPredicate(),
-            contracts,
-            new MultiMap<Type, TypedOperation>(),
-            new LinkedHashSet<TypedOperation>());
+            new PublicVisibilityPredicate(), contracts, new MultiMap<Type, TypedOperation>());
   }
 }

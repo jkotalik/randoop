@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -117,18 +116,13 @@ public class SequenceTests {
     GenInputsAbstract.unchecked_exception = BehaviorType.EXPECTED;
     VisibilityPredicate visibility = new PublicVisibilityPredicate();
     ExceptionPredicate isExpected = new ExceptionBehaviorPredicate(BehaviorType.EXPECTED);
-    ExpectedExceptionCheckGen expectation;
-    expectation = new ExpectedExceptionCheckGen(visibility, isExpected);
+    ExpectedExceptionCheckGen expectation = new ExpectedExceptionCheckGen(visibility, isExpected);
     testGen =
         new ExtendGenerator(
             new ContractCheckingVisitor(
                 contracts, new ExceptionBehaviorPredicate(BehaviorType.ERROR)),
             new RegressionCaptureVisitor(
-                expectation,
-                new MultiMap<Type, TypedOperation>(),
-                new LinkedHashSet<TypedOperation>(),
-                visibility,
-                true));
+                expectation, new MultiMap<Type, TypedOperation>(), visibility, true));
   }
 
   // See http://bugs.sun.com/bugdatabase/view_bug.do;:WuuT?bug_id=4094886

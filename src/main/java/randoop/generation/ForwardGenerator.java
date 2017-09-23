@@ -1,7 +1,6 @@
 package randoop.generation;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -21,6 +20,7 @@ import randoop.reflection.RandoopInstantiationError;
 import randoop.reflection.TypeInstantiator;
 import randoop.sequence.ExecutableSequence;
 import randoop.sequence.Sequence;
+import randoop.sequence.SequenceExceptionError;
 import randoop.sequence.Statement;
 import randoop.sequence.Value;
 import randoop.sequence.Variable;
@@ -71,8 +71,11 @@ public class ForwardGenerator extends AbstractGenerator {
   /**
    * The set of ALL sequences ever generated, including sequences that were executed and then
    * discarded.
+   *
+   * <p>This must be ordered by insertion to allow for flaky test history collection in {@link
+   * randoop.main.GenTests#handleFlakySequenceException(AbstractGenerator, SequenceExceptionError)}.
    */
-  private final Set<Sequence> allSequences;
+  private final LinkedHashSet<Sequence> allSequences;
 
   private final Set<TypedOperation> observers;
 
@@ -289,8 +292,8 @@ public class ForwardGenerator extends AbstractGenerator {
   }
 
   @Override
-  public Set<Sequence> getAllSequences() {
-    return Collections.unmodifiableSet(this.allSequences);
+  public LinkedHashSet<Sequence> getAllSequences() {
+    return this.allSequences;
   }
 
   /**
@@ -826,7 +829,11 @@ public class ForwardGenerator extends AbstractGenerator {
       // selection step is to select from among all possible values.
       // if (i == 0 && statement.isInstanceMethod()) m = Match.EXACT_TYPE;
       if (randomVariable == null) {
-        throw new BugInRandoopException("type: " + inputType + ", sequence: " + chosenSeq);
+        throw new BugInRandoopException(
+            "Failed to select variable with input type: "
+                + inputType
+                + " for sequence: "
+                + chosenSeq);
       }
 
       // Fail, if we were unlucky and selected a null or primitive value as the
@@ -876,5 +883,18 @@ public class ForwardGenerator extends AbstractGenerator {
   @Override
   public int numGeneratedSequences() {
     return allSequences.size();
+  }
+
+  @Override
+  public String toString() {
+    return "randoop.generation.ForwardGenerator("
+        + ("allSequences.size()=" + allSequences.size())
+        + ","
+        + ("observers.size()=" + observers.size())
+        + ","
+        + ("subsumed_sequences.size()=" + subsumed_sequences.size())
+        + ","
+        + ("runtimePrimitivesSeen.size()=" + runtimePrimitivesSeen.size())
+        + ")";
   }
 }
