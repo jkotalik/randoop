@@ -179,6 +179,12 @@ public class SpecialCoveredClassTest {
         System.out.println(rTest);
       }
       throw new Error("Unused operations: " + unused);
+    } else {
+      // TEMPORARY
+      for (ExecutableSequence rTest : rTests) {
+        System.out.println("TEST:");
+        System.out.println(rTest);
+      }
     }
   }
 }
