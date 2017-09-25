@@ -176,7 +176,7 @@ public class RandoopSystemTest {
     options.addTestClass("java2.util2.TreeSet");
     options.addTestClass("java2.util2.Collections");
     options.setFlag("no-error-revealing-tests");
-    options.setOption("outputLimit", "200");
+    options.setOption("outputLimit", "600");
     options.setOption("npe-on-null-input", "EXPECTED");
     options.setFlag("debug_checks");
     options.setOption("observers", "resources/systemTest/randoop1_observers.txt");
@@ -206,12 +206,6 @@ public class RandoopSystemTest {
     coverageChecker.exclude("java2.util2.TreeSet.subSet(java.lang.Object, java.lang.Object)");
     coverageChecker.exclude("java2.util2.TreeSet.writeObject(java.io.ObjectOutputStream)");
 
-    //TODO after changed types to ordered set in OperationModel, failing on Travis, but not locally
-    coverageChecker.ignore("java2.util2.Collections.synchronizedSet(java2.util2.Set)");
-    coverageChecker.ignore("java2.util2.Collections.synchronizedSortedSet(java2.util2.SortedSet)");
-    coverageChecker.ignore("java2.util2.TreeSet.first()");
-    coverageChecker.ignore("java2.util2.TreeSet.last()");
-    coverageChecker.ignore("java2.util2.TreeSet.tailSet(java.lang.Object)");
     ExpectedTests expectedRegressionTests = ExpectedTests.SOME;
     ExpectedTests expectedErrorTests = ExpectedTests.NONE;
 
