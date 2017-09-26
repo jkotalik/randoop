@@ -70,11 +70,13 @@ public final class Randomness {
   private static int totalCallsToRandom = 0;
 
   /** Call this before every use of Randomness.random. */
-  private static void incrementCallsToRandom() {
+  private static void incrementCallsToRandom(String caller) {
     totalCallsToRandom++;
     if (Log.isLoggingOn()) {
       Log.logLine(
-          "randoop.util.Randomness: "
+          "randoop.util.Randomness called by "
+              + caller
+              + ": "
               + totalCallsToRandom
               + " calls to Random so far, seed = "
               + getSeed());
@@ -88,7 +90,7 @@ public final class Randomness {
    * @return a value selected from range [0, i)
    */
   public static int nextRandomInt(int i) {
-    incrementCallsToRandom();
+    incrementCallsToRandom("nextRandomInt");
     int value = Randomness.random.nextInt(i);
     logSelection(value, "nextRandomInt", i);
     return value;
@@ -112,29 +114,30 @@ public final class Randomness {
     return list.get(position);
   }
 
-  // Warning: iterates through the entire list twice (once to compute interval
-  // length, once to select element).
+  /**
+   * Randomly selects an element from a weighted distribution of elements.
+   *
+   * <p>Efficiency note: iterates through the entire list twice (once to compute interval length,
+   * once to select element).
+   */
   public static <T extends WeightedElement> T randomMemberWeighted(SimpleList<T> list) {
 
-    // Find interval length.
-    double max = 0;
+    double totalWeight = 0.0;
     for (int i = 0; i < list.size(); i++) {
       double weight = list.get(i).getWeight();
       if (weight <= 0) {
-        throw new BugInRandoopException(
-            "Unable to select random member: found negative weight " + weight);
+        throw new BugInRandoopException("Weight should be positive: " + weight);
       }
-      max += weight;
+      totalWeight += weight;
     }
-    assert max > 0;
 
     // Select a random point in interval and find its corresponding element.
-    incrementCallsToRandom();
-    double randomPoint = Randomness.random.nextDouble() * max;
+    incrementCallsToRandom("randomMemberWeighted(SimpleList)");
+    double chosenPoint = Randomness.random.nextDouble() * totalWeight;
     double currentPoint = 0;
     for (int i = 0; i < list.size(); i++) {
       currentPoint += list.get(i).getWeight();
-      if (currentPoint >= randomPoint) {
+      if (currentPoint >= chosenPoint) {
         logSelection(i, "randomMemberWeighted", list);
         return list.get(i);
       }
@@ -173,7 +176,7 @@ public final class Randomness {
     assert max > 0;
 
     // Select a random point in interval and find its corresponding element.
-    incrementCallsToRandom();
+    incrementCallsToRandom("randomMemberWeighted");
     double randomPoint = Randomness.random.nextDouble() * max;
     if (selectionLog.enabled()) {
       selectionLog.log(
@@ -218,6 +221,7 @@ public final class Randomness {
     return mid;
   }
 
+  /** Return a random member of the set, selected uniformly at random. */
   public static <T> T randomSetMember(Collection<T> set) {
     int setSize = set.size();
     int randIndex = Randomness.nextRandomInt(setSize);
@@ -225,20 +229,22 @@ public final class Randomness {
     return CollectionsExt.getNthIteratedElement(set, randIndex);
   }
 
+  /** Return true with probability {@code trueProb}, otherwise false. */
   public static boolean weightedCoinFlip(double trueProb) {
     if (trueProb < 0 || trueProb > 1) {
       throw new IllegalArgumentException("arg must be between 0 and 1.");
     }
     double falseProb = 1 - trueProb;
-    incrementCallsToRandom();
+    incrementCallsToRandom("weightedCoinFlip");
     boolean result = Randomness.random.nextDouble() >= falseProb;
     logSelection(result, "weightedCoinFlip", trueProb);
     return result;
   }
 
+  /** Return true or false with the given relative probabilites, which need not add to 1. */
   public static boolean randomBoolFromDistribution(double falseProb_, double trueProb_) {
     double falseProb = falseProb_ / (falseProb_ + trueProb_);
-    incrementCallsToRandom();
+    incrementCallsToRandom("randomBoolFromDistribution");
     boolean result = Randomness.random.nextDouble() >= falseProb;
     logSelection(result, "randomBoolFromDistribution", falseProb_ + ", " + trueProb_);
     return result;

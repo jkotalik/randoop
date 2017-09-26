@@ -20,7 +20,7 @@ import plume.UtilMDE;
 /** Checks coverage for a test, managing information needed to perform the coverage checks. */
 class CoverageChecker {
 
-  /** The classes to check for coverage */
+  /** The classes whose methods must be covered */
   private final Set<String> classnames;
 
   /** The methods that must not be covered */
@@ -68,10 +68,10 @@ class CoverageChecker {
   }
 
   /**
-   * Performs a coverage check for the given set of classes relative to the full set of tests. Each
-   * declared method of a class that does not satisfy {@link #isIgnoredMethod(String)} is checked
-   * for coverage. If the method occurs in the excluded methods, then it must not be covered by any
-   * test. Otherwise, the method must be covered by some test.
+   * Performs a coverage check for the given set of classes. Each declared method of a class that
+   * does not satisfy {@link #isIgnoredMethod(String)} is checked for coverage. If the method occurs
+   * in the excluded methods, then it must not be covered by any test. Otherwise, the method must be
+   * covered by some test.
    *
    * @param regressionStatus the {@link TestRunStatus} from the regression tests
    * @param errorStatus the {@link TestRunStatus} from the error tests

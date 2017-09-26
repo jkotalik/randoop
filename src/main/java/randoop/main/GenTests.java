@@ -431,6 +431,8 @@ public class GenTests extends GenInputsAbstract {
 
     /* log setup */
     operationModel.log();
+    operationModel.dumpModel(System.out);
+    System.out.println("isLoggingOn = " + Log.isLoggingOn());
     if (Log.isLoggingOn()) {
       Log.logLine("Initial sequences (seeds):");
       componentMgr.log();
