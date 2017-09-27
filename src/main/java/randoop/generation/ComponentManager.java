@@ -191,9 +191,9 @@ public class ComponentManager {
 
   /**
    * Returns component sequences that create values of the type required by the i-th input value of
-   * the given statement. With probability <code>--p-const</code> (as given by the command-line
-   * option), this only returns the subset of these component sequences that are extracted literals.
-   * Otherwise, it returns all of these component sequences.
+   * the given statement. With probability <code>--prob-extracted-literals</code> (as given by the
+   * command-line option), this only returns the subset of these component sequences that are
+   * extracted literals. Otherwise, it returns all of these component sequences.
    *
    * @param operation the statement
    * @param i the input value index of statement
@@ -233,7 +233,8 @@ public class ComponentManager {
       }
     }
 
-    if (literals != null && Randomness.weightedCoinFlip(GenInputsAbstract.p_const)) {
+    if (literals != null
+        && Randomness.weightedCoinFlip(GenInputsAbstract.prob_extracted_literals)) {
       return literals;
     }
 

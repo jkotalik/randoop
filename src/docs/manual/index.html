@@ -994,11 +994,11 @@ Randoop about your application, and that is how we recommend using Randoop.
   <li><b>CLASS</b> a literal for a given class is used as input only to methods of that class
   <li><b>PACKAGE</b> a literal is used as input to methods of any classes in the same package
   <li><b>CLASS_OR_ALL</b> a literal for a given class is used as input only to methods of that class with probability
- <code>--p-const</code>, otherwise each literal is used as input to any method under test
+ <code>--prob-extracted-literals</code>, otherwise each literal is used as input to any method under test
   <li><b>ALL</b> each literal is used as input to any method under test
 </ul>
 
-            <li id="option:p-const"><b>--p-const=</b><i>double</i>.
+            <li id="option:prob-extracted-literals"><b>--prob-extracted-literals=</b><i>double</i>.
              What probability to select from only extracted literal sequences during sequence selection. [default 0.01]
             <li id="option:string-maxlen"><b>--string-maxlen=</b><i>int</i>.
              Maximum length of strings in generated tests, including in assertions. Strings longer than 65KB

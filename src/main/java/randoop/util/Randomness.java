@@ -1,7 +1,6 @@
 package randoop.util;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -147,45 +146,58 @@ public final class Randomness {
 
   /**
    * Randomly selects an element from a weighted distribution of elements. These weights are with
-   * respect to each other, and are not normalized. Used internally when the {@code
-   * --weighted-constants} and/or {@code --weighted-sequences} options are used. Iterates through
-   * the entire list once, then does a binary search to select the element.
+   * respect to each other. They are not normalized (they might add up to any value.)
+   *
+   * <p>Iterates through the entire list once, then does a binary search to select the element.
+   *
+   * <p>Used internally when the {@code --weighted-constants} and/or {@code --weighted-sequences}
+   * options are used.
    *
    * @param list the list of elements to select from
-   * @param weights the map of elements to their weights
+   * @param weights the map of elements to their weights; uses the intrinsic weight if the element
+   *     is not a key in the map
    * @param <T> the type of the elements in the list
-   * @return a randomly selected element of type T
+   * @return a randomly selected element from {@code list}
    */
   public static <T extends WeightedElement> T randomMemberWeighted(
       SimpleList<T> list, Map<T, Double> weights) {
 
-    // Find interval length.
-    double max = 0;
-    List<Double> cumulativeWeights = new ArrayList<>();
-    cumulativeWeights.add(0.0);
+    double totalWeight = 0.0;
+    // The ith element is the cumulative weight of all elements preceding the ith (that is,
+    // exclusive rather than inclusive).  The last (i+1)th element is the weight of all elements.
+    double[] cumulativeWeights = new double[list.size() + 1];
+    cumulativeWeights[0] = 0.0;
     for (int i = 0; i < list.size(); i++) {
-      Double weight = weights.get(list.get(i));
-      if (weight == null) {
-        Log.logLine("randoop.util.Randomness: weight was null");
-        weight = list.get(i).getWeight();
+      T elt = list.get(i);
+      Double weightOrNull = weights.get(elt);
+      double weight;
+      if (weightOrNull != null) {
+        weight = weightOrNull;
+      } else {
+        weight = elt.getWeight();
+        Log.logLine(
+            "randoop.util.Randomness: weights map does not contain an entry for "
+                + elt
+                + "; using intrinsic weight "
+                + weight);
       }
-      if (weight <= 0) throw new BugInRandoopException("weight was " + weight);
-      cumulativeWeights.add(cumulativeWeights.get(cumulativeWeights.size() - 1) + weight);
-      max += weight;
+      if (weight <= 0) {
+        throw new BugInRandoopException("Weight should be positive: " + weight);
+      }
+      cumulativeWeights[i] = totalWeight;
+      totalWeight += weight;
     }
-    assert max > 0;
+    cumulativeWeights[list.size()] = totalWeight;
 
     // Select a random point in interval and find its corresponding element.
-    incrementCallsToRandom("randomMemberWeighted");
-    double randomPoint = Randomness.random.nextDouble() * max;
+    incrementCallsToRandom("randomMemberWeighted(SimpleList, Map)");
+    double chosenPoint = Randomness.random.nextDouble() * totalWeight;
     if (selectionLog.enabled()) {
       selectionLog.log(
-          "randomPoint = %s, cumulativeWeights = %s%n", randomPoint, cumulativeWeights);
+          "chosenPoint = %s, cumulativeWeights = %s%n", chosenPoint, cumulativeWeights);
     }
 
-    assert list.size() + 1 == cumulativeWeights.size(); // because cumulative weights starts at 0
-
-    int index = binarySearchForIndex(cumulativeWeights, randomPoint);
+    int index = binarySearchForIndex(cumulativeWeights, chosenPoint);
     if (selectionLog.enabled()) { // body is expensive
       logSelection(
           index,
@@ -200,18 +212,20 @@ public final class Randomness {
   /**
    * Performs a binary search on a cumulative weight distribution and returns the corresponding
    * index i such that {@code cumulativeWeights.get(i) < point <= cumulativeWeights.get(i + 1)} for
-   * {@code 0 <= i <= cumulativeWeights.size()}.
+   * {@code 0 <= i < cumulativeWeights.length}.
    *
-   * @param cumulativeWeights the cumulative weight distribution to search through
+   * @param cumulativeWeights the cumulative weight distribution to search through. The ith element
+   *     is the cumulative weight of all elements before the ith (that is, exclusive rather than
+   *     inclusive). The last (i+1)th element is the weight of all elements.
    * @param point the value used to find the index within the cumulative weight distribution
    * @return the index corresponding to point's location in the cumulative weight distribution
    */
-  private static int binarySearchForIndex(List<Double> cumulativeWeights, double point) {
+  private static int binarySearchForIndex(double[] cumulativeWeights, double point) {
     int low = 0;
-    int high = cumulativeWeights.size();
+    int high = cumulativeWeights.length;
     int mid = (low + high) / 2;
-    while (!(cumulativeWeights.get(mid) < point && cumulativeWeights.get(mid + 1) >= point)) {
-      if (cumulativeWeights.get(mid) < point) {
+    while (!(cumulativeWeights[mid] < point && point <= cumulativeWeights[mid + 1])) {
+      if (cumulativeWeights[mid] < point) {
         low = mid;
       } else {
         high = mid;

@@ -338,6 +338,7 @@ public class OperationModel {
       out.write(String.format("  inputTypes = %s%n", inputTypes));
       out.write(String.format("  coveredClassesGoal = %s%n", coveredClassesGoal));
       out.write(String.format("  classLiteralMap = %s%n", classLiteralMap));
+      out.write(String.format("  literalsTermFrequency = %s%n", literalsTermFrequency));
       out.write(String.format("  annotatedTestValues = %s%n", annotatedTestValues));
       out.write(String.format("  contracts = %s%n", contracts));
       // out.write(String.format("  operations = %s%n", operations));

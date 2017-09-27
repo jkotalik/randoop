@@ -436,16 +436,22 @@ public abstract class GenInputsAbstract extends CommandHandler {
     PACKAGE,
     /**
      * A literal for a given class is used as input only to methods of that class with probability
-     * <code>--p-const</code>, otherwise each literal is used as input to any method under test.
+     * <code>--prob-extracted-literals</code>, otherwise each literal is used as input to any method
+     * under test.
      */
     CLASS_OR_ALL,
     /** Each literal is used as input to any method under test. */
     ALL
   }
 
-  /** What probability to select from only extracted literal sequences during sequence selection. */
+  // TODO: An "extracted literal" seems to be one found in a class file.
+  /**
+   * What probability to select from only extracted literal sequences during sequence selection. In
+   * other words, at least this fraction of method inputs are guaranteed to be literals from the
+   * classfile.
+   */
   @Option("What probability to select only extracted literals")
-  public static double p_const = .01;
+  public static double prob_extracted_literals = .01;
 
   // Implementation note: when checking whether a String S exceeds the given
   // maxlength, we test if StringEscapeUtils.escapeJava(S), because this is

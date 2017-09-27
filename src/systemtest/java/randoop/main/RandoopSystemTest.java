@@ -320,10 +320,10 @@ public class RandoopSystemTest {
       coverageChecker.ignore("java2.util2.LinkedList.toArray()");
     }
 
-    // The following are known coverage inconsistencies when using --literals-level=CLASS_OR_ALL with --p.const=.01
-    // These also depend on the value of --p_const
+    // The following are known coverage inconsistencies when using --literals-level=CLASS_OR_ALL with --prob-extracted-literals=.01
+    // These also depend on the value of --prob-extracted-literals.
     // if (GenInputsAbstract.literals_level == GenInputsAbstract.ClassLiteralsMode.CLASS_OR_ALL
-    //     && GenInputsAbstract.p_const == .01) {
+    //     && GenInputsAbstract.prob_extracted_literals == .01) {
     if (false) {
 
       /* Covered locally, inconsistently covered on Travis */
