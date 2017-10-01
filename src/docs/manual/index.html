@@ -859,7 +859,7 @@ Randoop about your application, and that is how we recommend using Randoop.
             <li id="option:minimize-error-test"><b>--minimize-error-test=</b><i>boolean</i>.
              Flag indicating whether or not to automatically minimize error-revealing tests. Both original
  and minimized versions of each test class will be output. Setting this option may cause long
- Randoop run times if Randoop outputs and minimizes more than about 100 error-revealing tests. [default true]
+ Randoop run times if Randoop outputs and minimizes more than about 100 error-revealing tests. [default false]
       </ul>
   <li id="optiongroup:Test-classification">Test classification
       <ul>
@@ -1566,7 +1566,11 @@ java -ea -classpath $(RANDOOP_JAR) randoop.main.Main help --unpub gentests
 </li>
 <li><strong>Mailing list</strong>: If you don't find your question answered,
   email either <code>randoop-discuss@googlegroups.com</code> or
-  <code>randoop-developers@googlegroups.com</code> (never both) with your question.
+  <code>randoop-developers@googlegroups.com</code> (never both) with your
+  question.
+  If your question relates to an execution of Randoop, be sure to give enough
+  information to reproduce the execution; see the instructions for
+  <a href="#bug-reporting">submitting a bug report</a>.
 </li>
 <li><strong>Bug reporting</strong>: If
   you have discovered a problem with Randoop, we would like to fix it.
