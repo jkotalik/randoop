@@ -295,6 +295,7 @@ public class GenTests extends GenInputsAbstract {
      */
     if (operations.size() <= 1) {
       System.out.println(NO_OPERATIONS_TO_TEST);
+      operationModel.dumpModel(System.out);
       System.exit(1);
     }
     if (GenInputsAbstract.progressdisplay) {

@@ -48,9 +48,9 @@ import plume.UtilMDE;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class RandoopSystemTest {
 
-  // Keep this in synch with GenTests.NO_OPERATIONS_TO_TEST.
-  // (XXX Can factor into module of shared dependencies, but...  Since we are avoiding dependencies
+  // Keep this in synch with GenTests.NO_OPERATIONS_TO_TEST.  (Since we are avoiding dependencies
   // of the system tests on Randoop code, the tests can't directly use GenTests.NO_METHODS_TO_TEST.)
+  // XXX Factor into module of shared dependencies.
   private static final String NO_OPERATIONS_TO_TEST = "There are no operations to test. Exiting.";
 
   private static SystemTestEnvironment systemTestEnvironment;

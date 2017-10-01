@@ -95,6 +95,9 @@ public class OperationModel {
   /** Set of concrete operations extracted from classes */
   private final Set<TypedOperation> operations;
 
+  /** For debugging only */
+  private List<Pattern> omitMethods;
+
   /** Create an empty model of test context. */
   private OperationModel() {
     // TreeSet here for deterministic coverage in the systemTest runNaiveCollectionsTest()
@@ -150,6 +153,9 @@ public class OperationModel {
       throws SignatureParseException, NoSuchMethodException {
 
     OperationModel model = new OperationModel();
+
+    // for debugging only
+    model.omitMethods = omitmethods;
 
     model.addClassTypes(
         visibility,
@@ -341,7 +347,8 @@ public class OperationModel {
       out.write(String.format("  literalsTermFrequency = %s%n", literalsTermFrequency));
       out.write(String.format("  annotatedTestValues = %s%n", annotatedTestValues));
       out.write(String.format("  contracts = %s%n", contracts));
-      // out.write(String.format("  operations = %s%n", operations));
+      out.write(String.format("  omitMethods = %s%n", omitMethods));
+      // Use logOperations instead: out.write(String.format("  operations = %s%n", operations));
       logOperations(out);
     } catch (IOException ioe) {
       throw new Error(ioe);
