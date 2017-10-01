@@ -1577,7 +1577,8 @@ public class RandoopSystemTest {
     TestRunStatus errorRunDesc = null;
     switch (expectedError) {
       case SOME:
-        assertThat("Test has error tests", runStatus.errorTestCount, is(greaterThan(0)));
+        assertThat(
+            "Test suite should have error tests", runStatus.errorTestCount, is(greaterThan(0)));
         String errorBasename = options.getErrorBasename();
         try {
           errorRunDesc = TestRunStatus.runTests(environment, packageName, errorBasename);
@@ -1589,11 +1590,17 @@ public class RandoopSystemTest {
           for (String line : errorRunDesc.processStatus.outputLines) {
             System.err.println(line);
           }
-          fail("All error tests should fail, but " + errorRunDesc.testsSucceed + " passed");
+          fail(
+              "All error tests should fail, but "
+                  + errorRunDesc.testsSucceed
+                  + " error tests passed");
         }
         break;
       case NONE:
-        assertThat("Test has no error tests", runStatus.errorTestCount, is(equalTo(0)));
+        if (runStatus.errorTestCount != 0) {
+          // TODO: should output the error tests.  Print the file?
+          fail("Test suite should have no error tests, but has " + runStatus.errorTestCount);
+        }
         break;
       case DONT_CARE:
         break;
