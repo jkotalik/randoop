@@ -988,18 +988,21 @@ Randoop about your application, and that is how we recommend using Randoop.
  test.
             <li id="option:literals-level"><b>--literals-level=</b><i>enum</i>.
              How to use literal values that are specified via the <code>--literals-file</code> command-line
- option. See: <code>ClassLiteralsMode</code>. [default CLASS_OR_ALL]
+ option. [default CLASS_OR_ALL]
 <ul>
-  <li><b>NONE</b> do not use literals specified in a literals file
-  <li><b>CLASS</b> a literal for a given class is used as input only to methods of that class
-  <li><b>PACKAGE</b> a literal is used as input to methods of any classes in the same package
-  <li><b>CLASS_OR_ALL</b> a literal for a given class is used as input only to methods of that class with probability
- <code>--prob-extracted-literals</code>, otherwise each literal is used as input to any method under test
-  <li><b>ALL</b> each literal is used as input to any method under test
+  <li><b>NONE</b> Do not use literals specified in a literals file.
+  <li><b>CLASS</b> A literal for a given class is used as input only to methods of that class.
+  <li><b>PACKAGE</b> A literal is used as input to methods of any classes in the same package.
+  <li><b>CLASS_OR_ALL</b> A literal for a given class is used as input only to methods of that class with probability
+ <code>--prob-extracted-literals</code>, otherwise each literal is used as input to any method
+ under test.
+  <li><b>ALL</b> Each literal is used as input to any method under test.
 </ul>
 
             <li id="option:prob-extracted-literals"><b>--prob-extracted-literals=</b><i>double</i>.
-             What probability to select from only extracted literal sequences during sequence selection. [default 0.01]
+             What probability to select from only extracted literal sequences during sequence selection. In
+ other words, at least this fraction of method inputs are guaranteed to be literals from the
+ classfile. [default 0.01]
             <li id="option:string-maxlen"><b>--string-maxlen=</b><i>int</i>.
              Maximum length of strings in generated tests, including in assertions. Strings longer than 65KB
  (or about 10,000 characters) may be rejected by the Java compiler, according to the Java

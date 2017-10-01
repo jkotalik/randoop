@@ -20,7 +20,7 @@ import plume.UtilMDE;
 /** Checks coverage for a test, managing information needed to perform the coverage checks. */
 class CoverageChecker {
 
-  /** The classes whose methods must be covered */
+  /** The classes whose methods must be covered. */
   private final Set<String> classnames;
 
   /** The methods that must not be covered */
@@ -119,19 +119,23 @@ class CoverageChecker {
       }
     }
 
+    StringBuilder failureMessage = new StringBuilder();
     if (!missingMethods.isEmpty()) {
-      StringBuilder msg = new StringBuilder(String.format("Expected methods not covered:%n"));
+      failureMessage.append(String.format("Expected methods not covered:%n"));
       for (String name : missingMethods) {
-        msg.append(String.format("  %s%n", name));
+        failureMessage.append(String.format("  %s%n", name));
       }
-      fail(msg.toString());
     }
     if (!shouldBeMissingMethods.isEmpty()) {
-      StringBuilder msg = new StringBuilder(String.format("Excluded methods that are covered:%n"));
+      failureMessage.append(
+          String.format("Excluded methods that are covered (test can be made more strict:%n"));
       for (String name : shouldBeMissingMethods) {
-        msg.append(String.format("  %s%n", name));
+        failureMessage.append(String.format("  %s%n", name));
       }
-      fail(msg.toString());
+    }
+    String msg = failureMessage.toString();
+    if (!msg.isEmpty()) {
+      fail(msg);
     }
   }
 
