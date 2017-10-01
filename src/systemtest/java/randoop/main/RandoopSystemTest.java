@@ -1412,6 +1412,10 @@ public class RandoopSystemTest {
     checker.ignore("components.Framework.makeNewWindow()");
     checker.ignore("components.MissingIcon.getIconWidth()");
 
+    // Inconsistent between JDK7 and JDK8, because of differences in JDK implementation of
+    // JComponent.getAccessibleContext.
+    checker.ignore("components.CrayonPanel.createImageIcon(java.lang.String)");
+
     generateAndTestWithCoverage(
         testEnvironment, options, ExpectedTests.SOME, ExpectedTests.NONE, checker);
   }

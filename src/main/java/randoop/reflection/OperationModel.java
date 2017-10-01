@@ -314,7 +314,7 @@ public class OperationModel {
   public void logOperations(Writer out) {
     try {
       out.write("Operations: " + Globals.lineSep);
-      for (TypedOperation t : this.operations) {
+      for (TypedOperation t : operations) {
         out.write(t.toString());
         out.write(Globals.lineSep);
         out.flush();

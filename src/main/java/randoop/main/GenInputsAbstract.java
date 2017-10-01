@@ -94,7 +94,7 @@ public abstract class GenInputsAbstract extends CommandHandler {
    * --omitmethods</code>, and the default omissions.
    */
   @Option("File containing regular expressions for methods to omit")
-  public static File omitmethods_list = null;
+  public static File omitmethods_file = null;
 
   /**
    * Include methods that are otherwise omitted by default. Unless you set this to true, every
