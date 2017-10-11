@@ -488,7 +488,7 @@ public class RandoopSystemTest {
     coverageChecker.exclude("java2.util2.LinkedHashMap.newValueIterator()");
     coverageChecker.exclude("java2.util2.LinkedList.add(int, java.lang.Object)");
     coverageChecker.exclude("java2.util2.LinkedList.readObject(java.io.ObjectInputStream)");
-    // coverageChecker.exclude("java2.util2.LinkedList.remove(int)");
+    coverageChecker.exclude("java2.util2.LinkedList.remove(int)");
     coverageChecker.exclude("java2.util2.LinkedList.writeObject(java.io.ObjectOutputStream)");
     // coverageChecker.exclude("java2.util2.Observable.addObserver(java2.util2.Observer)");
     coverageChecker.exclude("java2.util2.Observable.clearChanged()");
@@ -532,7 +532,7 @@ public class RandoopSystemTest {
     coverageChecker.exclude("java2.util2.Vector.writeObject(java.io.ObjectOutputStream)");
     coverageChecker.exclude("java2.util2.WeakHashMap.removeMapping(java.lang.Object)");
 
-    coverageChecker.exclude("java2.util2.ArrayList.remove(int)");
+    // coverageChecker.exclude("java2.util2.ArrayList.remove(int)");
     // coverageChecker.exclude("java2.util2.Arrays.binarySearch(float[], float)");
     // coverageChecker.exclude("java2.util2.Arrays.binarySearch(float[], float, int, int)");
     // coverageChecker.exclude("java2.util2.Arrays.cloneSubarray(java.lang.Object[], int, int)");
