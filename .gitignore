@@ -26,5 +26,5 @@ bin/
 # NetBeans
 /.nb-gradle/
 
-# Temporary file from type-checking case study.
+# Temporary file
 gradle-build-output.txt

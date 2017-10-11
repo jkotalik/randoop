@@ -432,7 +432,7 @@ public class GenTests extends GenInputsAbstract {
 
     /* log setup */
     operationModel.log();
-    // These two lines make runNoOutputTest() fail:
+    // These two debugging lines make runNoOutputTest() fail:
     // operationModel.dumpModel(System.out);
     // System.out.println("isLoggingOn = " + Log.isLoggingOn());
     if (Log.isLoggingOn()) {

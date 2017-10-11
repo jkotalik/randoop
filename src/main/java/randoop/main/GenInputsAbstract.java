@@ -206,7 +206,6 @@ public abstract class GenInputsAbstract extends CommandHandler {
   @Option("File containing class names that tests must cover")
   public static File require_covered_classes = null;
 
-  // Defaulting to true causes unacceptable slowdowns in many (not all) situations.
   /**
    * Flag indicating whether or not to automatically minimize error-revealing tests. Both original
    * and minimized versions of each test class will be output. Setting this option may cause long
@@ -216,6 +215,7 @@ public abstract class GenInputsAbstract extends CommandHandler {
   // Regardless of this option's setting, minimization is enabled when
   // <code>--stop-on-error-test</code> is set.
   @Option("<boolean> to indicate automatic minimization of error-revealing tests")
+  // Defaulting to true sometimes causes unacceptable slowdowns.
   public static boolean minimize_error_test = false;
 
   /**

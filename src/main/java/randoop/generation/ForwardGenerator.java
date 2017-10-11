@@ -6,6 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import randoop.BugInRandoopException;
 import randoop.DummyVisitor;
 import randoop.Globals;
 import randoop.NormalExecution;
@@ -818,19 +819,17 @@ public class ForwardGenerator extends AbstractGenerator {
       // selection step is to select from among all possible values produced by the sequence.
       Variable randomVariable = chosenSeq.randomVariableForTypeLastStatement(inputType, isReceiver);
 
-      // TODO: Why not use the value, or avoid making this particular choice?
-      // Fail, if we were unlucky and selected a null or primitive value as the
-      // receiver for a method call.
       if (isReceiver
           && (chosenSeq.getCreatingStatement(randomVariable).isNonreceivingInitialization()
               || randomVariable.getType().isPrimitive())) {
-        Log.logLine("Selected null or a primitive as the receiver for a method call.");
-        Log.logLine(
+        System.out.printf("Selected null or a primitive as the receiver for a method call.");
+        System.out.printf(
             "  " + chosenSeq.getCreatingStatement(randomVariable).isNonreceivingInitialization());
-        Log.logLine("  " + chosenSeq.getCreatingStatement(randomVariable));
-        Log.logLine("  " + randomVariable.getType().isPrimitive());
-        Log.logLine("  " + randomVariable);
-        return new InputsAndSuccessFlag(false, null, null);
+        System.out.printf("  " + chosenSeq.getCreatingStatement(randomVariable));
+        System.out.printf("  " + randomVariable.getType().isPrimitive());
+        System.out.printf("  " + randomVariable);
+        throw new BugInRandoopException(
+            "Selected null or primitive value as the receiver for a method call");
       }
 
       // [Optimization.] Update optimization-related variables "types" and
